@@ -1,4 +1,4 @@
-package com.cakcaraka.databinarycompatible.dataclass
+package com.cakcaraka.databinarycompatible.example_ksp.annotation
 
 
 /**

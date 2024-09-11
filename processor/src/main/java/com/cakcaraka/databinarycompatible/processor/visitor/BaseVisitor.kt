@@ -84,7 +84,11 @@ internal abstract class BaseVisitor(
         val className = generatedClassName ?: classDeclaration.simpleName.asString()
             .dropLast(config.defaultRequiredSuffix.length)
         val classKdoc = classDeclaration.docString
-        val packageName = classDeclaration.packageName.asString()
+        val packageName = classDeclaration.packageName.asString().removeSuffix(
+            config.defaultDropPackagesSuffix.firstOrNull {
+                classDeclaration.packageName.asString().endsWith(it)
+            }.orEmpty()
+        )
 
         // Resolve list of imports]
         val imports = ArrayList<String>()
@@ -572,6 +576,18 @@ internal abstract class BaseVisitor(
         if (classDeclaration.typeParameters.any()) {
             logger.error(
                 "@{$annotationName} target shouldn't have type parameters",
+                classDeclaration
+            )
+            return true
+        }
+
+        if (config.defaultDropPackagesSuffix.isNotEmpty() && config.defaultDropPackagesSuffix.none {
+                classDeclaration.packageName.asString().endsWith(it)
+            }
+        ) {
+            logger.error(
+                "@{$annotationName} target's package must end with either ${config.defaultDropPackagesSuffix}" +
+                        " suffix naming, to change please use ksp args data_binary_compatible_drop_packages_suffix",
                 classDeclaration
             )
             return true

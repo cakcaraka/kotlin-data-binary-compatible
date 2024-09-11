@@ -71,6 +71,9 @@ dependencies {
 
     implementation(project(":annotation"))
     ksp(project(":processor"))
+
+    implementation(project(":example-ksp"))
+
 }
 
 ksp {

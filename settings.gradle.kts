@@ -18,6 +18,7 @@ rootProject.name = "kotlin-data-binary-compatible"
 
 if (System.getenv("onlyLibrary") != "1") {
     include(":app")
+    include(":example-ksp")
 }
 include(":annotation")
 include(":processor")

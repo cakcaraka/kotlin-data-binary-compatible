@@ -1,4 +1,4 @@
-package com.cakcaraka.databinarycompatible.dataclass
+package com.cakcaraka.databinarycompatible.example_ksp.data
 
 import android.os.Parcelable
 import com.cakcaraka.databinarycompatible.annotation.DataClass
@@ -6,13 +6,13 @@ import com.cakcaraka.databinarycompatible.annotation.DefaultValue
 import com.cakcaraka.databinarycompatible.annotation.SealedParentDataClass
 
 
-@com.cakcaraka.databinarycompatible.dataclass.DataClass(
+@com.cakcaraka.databinarycompatible.example_ksp.annotation.DataClass(
     generatedClassName = "ExampleNotTaken" //this should be ignored and not class
 )
 @DataClass(
 
 )
-interface Example_dc {
+interface Example {
 
     val testWithString: String
 
@@ -31,8 +31,8 @@ interface Example_dc {
     val testWithDoubleNullable: Double?
 }
 
-@com.cakcaraka.databinarycompatible.dataclass.DataClass
-interface ExampleIgnored_dc {
+@com.cakcaraka.databinarycompatible.example_ksp.annotation.DataClass
+interface ExampleIgnored {
 
     val testWithString: String
 
@@ -55,7 +55,7 @@ interface ExampleIgnored_dc {
     annotations = ["Parcelize"],
     imports = ["kotlinx.parcelize.Parcelize"]
 )
-interface ExampleAnnotated_dc: Parcelable {
+interface ExampleAnnotated: Parcelable {
     val test: String
 
     @DefaultValue(stringValue = "Test")
@@ -67,11 +67,11 @@ interface ExampleAnnotated_dc: Parcelable {
 
 
 @SealedParentDataClass
-interface SealedExample_dc {
+interface SealedExample {
     val test: String
 
     @DataClass
-    interface Sealed1_dc: SealedExample_dc {
+    interface Sealed1: SealedExample {
         @DefaultValue(stringValue = "Test")
         override val test: String
     }
