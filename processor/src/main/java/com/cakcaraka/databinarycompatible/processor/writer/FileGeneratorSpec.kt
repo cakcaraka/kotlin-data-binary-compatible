@@ -11,6 +11,6 @@ data class FileGeneratorSpec(
     val className: String,
     val imports: List<String>,
     val classBuilder: TypeSpec.Builder,
-    val initializer: FunSpec?,
+    val initializer: FunSpec.Builder?,
     val parent: KSClassDeclaration?
 )

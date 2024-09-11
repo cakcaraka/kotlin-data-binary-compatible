@@ -72,7 +72,7 @@ object FileWriter {
         mergedMap.forEach { _, spec ->
             val parentSpec = spec.parent ?: return@forEach
 
-            val initializationSpecs = mutableListOf<FunSpec>().apply {
+            val initializationSpecs = mutableListOf<FunSpec.Builder>().apply {
                 if (parentSpec.initializer != null) {
                     add(parentSpec.initializer)
                 }
@@ -84,14 +84,34 @@ object FileWriter {
 
             val parentSpecClassBuilder = parentSpec.classBuilder
 
+            val childInitializer = mutableListOf<FunSpec.Builder>()
+
             spec.children.forEach { child ->
                 child.initializer?.also {
-                    initializationSpecs.add(it)
+                    childInitializer.add(it)
                 }
                 importSpecs.addAll(child.imports)
 
                 parentSpecClassBuilder.addType(
                     child.classBuilder.build()
+                )
+            }
+
+            if(childInitializer.isNotEmpty()) {
+                parentSpecClassBuilder.addType(
+                    TypeSpec.companionObjectBuilder()
+                        .addKdoc(
+                            """
+                            Public Companion Object of [${parentSpec.className}].
+                            """.trimIndent()
+                        ).apply {
+                            childInitializer.forEach {
+                                addFunction(
+                                    it.addAnnotation(JvmStatic::class).build()
+                                )
+                            }
+                        }
+                        .build()
                 )
             }
 
@@ -112,7 +132,7 @@ object FileWriter {
         packageName: String,
         className: String,
         classBuilder: TypeSpec.Builder,
-        initializationSpecs: List<FunSpec>,
+        initializationSpecs: List<FunSpec.Builder>,
         importSpecs: List<String>
     ) {
         val fileBuilder = FileSpec.builder(packageName, className)
@@ -120,7 +140,9 @@ object FileWriter {
             .addType(classBuilder.build())
             .apply {
                 initializationSpecs.forEach {
-                    addFunction(it)
+                    addFunction(
+                        it.addAnnotation(JvmSynthetic::class).build()
+                    )
                 }
             }
 

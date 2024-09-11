@@ -499,7 +499,7 @@ internal abstract class BaseVisitor(
                     kdocs
                 )
                 .returns(classNameObject)
-                .addAnnotation(JvmSynthetic::class)
+
 
             if (mandatoryParams.isNotEmpty()) {
                 propertyMap.filter {
@@ -528,7 +528,7 @@ internal abstract class BaseVisitor(
                     .addStatement("return ${classNameObject.simpleNames.joinToString(".")}.Builder($mandatoryParams).build()")
             }
 
-            initializerFunctionBuilder.build()
+            initializerFunctionBuilder
         } else {
             null
         }
