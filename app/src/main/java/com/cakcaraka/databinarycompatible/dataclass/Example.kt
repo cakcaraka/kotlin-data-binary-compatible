@@ -6,7 +6,12 @@ import com.cakcaraka.databinarycompatible.annotation.DefaultValue
 import com.cakcaraka.databinarycompatible.annotation.SealedParentDataClass
 
 
-@DataClass
+@com.cakcaraka.databinarycompatible.dataclass.DataClass(
+    generatedClassName = "ExampleNotTaken" //this should be ignored and not class
+)
+@DataClass(
+
+)
 interface Example_dc {
 
     val testWithString: String
@@ -24,7 +29,26 @@ interface Example_dc {
     val testWithFloatNullable: Float?
 
     val testWithDoubleNullable: Double?
+}
 
+@com.cakcaraka.databinarycompatible.dataclass.DataClass
+interface ExampleIgnored_dc {
+
+    val testWithString: String
+
+    val testWithInt: Int
+
+    val testWithFloat: Float
+
+    val testWithDouble: Double
+
+    val testWithStringNullable: String?
+
+    val testWithIntNullable: Int?
+
+    val testWithFloatNullable: Float?
+
+    val testWithDoubleNullable: Double?
 }
 
 @DataClass(

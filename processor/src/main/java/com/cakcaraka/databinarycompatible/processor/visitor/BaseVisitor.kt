@@ -19,7 +19,6 @@ import com.squareup.kotlinpoet.LambdaTypeName
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
-import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.ksp.toClassName
 import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.toTypeParameterResolver
@@ -63,7 +62,7 @@ internal abstract class BaseVisitor(
         super.visitClassDeclaration(classDeclaration, data)
 
         val annotatedClassData = classDeclaration.annotations.firstOrNull {
-            it.annotationType.resolve().toString() == annotationClass.simpleName
+            it.annotationType.resolve().declaration.qualifiedName?.asString() == annotationClass.qualifiedName
         }
 
         val originalClassName = classDeclaration.qualifiedName
@@ -95,8 +94,7 @@ internal abstract class BaseVisitor(
 
         val otherAnnotations = classDeclaration.annotations
             .filter {
-                it.annotationType.resolve()
-                    .toString() != annotationClass.simpleName
+                it.annotationType.resolve().declaration.qualifiedName?.asString() != annotationClass.qualifiedName
             }
 
         val additionalAnnotations = annotatedClassData?.arguments?.firstOrNull {
