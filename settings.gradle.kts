@@ -15,6 +15,9 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "kotlin-data-binary-compatible"
-include(":app")
+
+if (System.getenv("onlyLibrary") != "1") {
+    include(":app")
+}
 include(":annotation")
 include(":processor")
