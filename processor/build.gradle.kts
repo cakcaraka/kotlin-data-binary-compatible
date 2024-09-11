@@ -29,3 +29,15 @@ sourceSets.main {
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
     kotlinOptions.freeCompilerArgs += "-Xopt-in=com.squareup.kotlinpoet.ksp.KotlinPoetKspPreview"
 }
+
+publishing {
+    publications {
+        create<MavenPublication>("release") {
+            groupId = "com.cakcaraka.databinarycompatible"
+            artifactId = "processor"
+            version = "1.0"
+
+            from(components["kotlin"])
+        }
+    }
+}
