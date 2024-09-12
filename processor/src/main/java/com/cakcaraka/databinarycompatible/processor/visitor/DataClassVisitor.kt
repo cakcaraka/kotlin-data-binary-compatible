@@ -34,10 +34,10 @@ internal class DataClassVisitor(
     override val isGenerateCopyMethod: Boolean = true
 
     override val constructingMechanism: ConstructingMechanism = ConstructingMechanism(
-        dsl = false,
         builder = true,
         primaryConstructor = true,
-        secondaryConstructor = true
+        secondaryConstructor = config.constructViaConstructorInsteadOfDsl,
+        dsl = config.constructViaConstructorInsteadOfDsl.not()
     )
 
 

@@ -41,4 +41,5 @@ dependencies {
 ksp {
     arg("data_binary_compatible_required_suffix", "")
     arg("data_binary_compatible_drop_packages_suffix","data")
+    arg("data_binary_compatible_construct_mechanism","constructor")
 }

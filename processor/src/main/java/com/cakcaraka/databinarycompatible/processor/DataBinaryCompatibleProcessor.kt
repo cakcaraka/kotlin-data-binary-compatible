@@ -35,7 +35,8 @@ class DataBinaryCompatibleProcessor(
 
         val config = Config(
             defaultRequiredSuffix = options["data_binary_compatible_required_suffix"] ?: "DBC",
-            defaultDropPackagesSuffix = options["data_binary_compatible_drop_packages_suffix"]?.split("|").orEmpty()
+            defaultDropPackagesSuffix = options["data_binary_compatible_drop_packages_suffix"]?.split("|").orEmpty(),
+            constructViaConstructorInsteadOfDsl = options["data_binary_compatible_construct_mechanism"] == "constructor"
         )
 
         // symbols returned by
@@ -139,6 +140,7 @@ class DataBinaryCompatibleProcessor(
 
     internal class Config(
         val defaultRequiredSuffix: String,
-        val defaultDropPackagesSuffix: List<String>
+        val defaultDropPackagesSuffix: List<String>,
+        val constructViaConstructorInsteadOfDsl: Boolean
     )
 }
