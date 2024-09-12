@@ -6,11 +6,7 @@ import com.cakcaraka.databinarycompatible.annotation.DefaultValue
 import com.cakcaraka.databinarycompatible.annotation.SealedParentDataClass
 
 
-@DataClass
-interface ExampleWithNoMandatory {
-    @DefaultValue(stringValue = "Test")
-    val test: String
-}
+
 
 @com.cakcaraka.databinarycompatible.example_ksp.annotation.DataClass(
     generatedClassName = "ExampleNotTaken" //this should be ignored and not class
@@ -38,41 +34,6 @@ interface Example {
 
     @DefaultValue(stringValue = "Test")
     val testWithDefaultString: String
-}
-
-@com.cakcaraka.databinarycompatible.example_ksp.annotation.DataClass
-interface ExampleIgnored {
-
-    val testWithString: String
-
-    val testWithInt: Int
-
-    val testWithFloat: Float
-
-    val testWithDouble: Double
-
-    val testWithStringNullable: String?
-
-    val testWithIntNullable: Int?
-
-    val testWithFloatNullable: Float?
-
-    val testWithDoubleNullable: Double?
-
-}
-
-@DataClass(
-    annotations = ["Parcelize"],
-    imports = ["kotlinx.parcelize.Parcelize"]
-)
-interface ExampleAnnotated: Parcelable {
-    val test: String
-
-    @DefaultValue(stringValue = "Test")
-    val testWithDefaultString: String
-
-    @DefaultValue(rawValue = "5")
-    val testWithDefaultInt: Int
 }
 
 

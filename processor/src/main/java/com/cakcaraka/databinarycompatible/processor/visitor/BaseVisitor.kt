@@ -89,8 +89,8 @@ internal abstract class BaseVisitor(
         }?.value?.let { imports.addAll(it as ArrayList<String>) }
 
         val otherAnnotations = classDeclaration.annotations.filter {
-                it.annotationType.resolve().declaration.qualifiedName?.asString() != annotationClass.qualifiedName
-            }
+            it.annotationType.resolve().declaration.qualifiedName?.asString() != annotationClass.qualifiedName
+        }
 
         val additionalAnnotations = annotatedClassData?.arguments?.firstOrNull {
             it.name?.getShortName() == "annotations"
@@ -118,7 +118,7 @@ internal abstract class BaseVisitor(
 
             propertyMap[property] = PropertyConfig(
                 typeName = typeName,
-                mandatoryForConstructor = defaultValuesMap[classDeclaration]?.get(property.toString()) == null && !typeName.isNullable,
+                mandatoryForConstructor = defaultValuesMap[classDeclaration]?.get(property.toString()) == null,
                 defaultValue = defaultValuesMap[classDeclaration]?.get(property.toString())?.first,
                 isMutable = defaultValuesMap[classDeclaration]?.get(property.toString())?.second?.not()
                     ?: true,
@@ -193,16 +193,17 @@ internal abstract class BaseVisitor(
                         } else {
                             addModifiers(KModifier.ABSTRACT)
                         }
-                    }.build())
+                    }.build()
+                )
             }
 
             // Function toString
             addFunction(
                 FunSpec.builder("toString").addModifiers(KModifier.OVERRIDE).addKdoc(
-                        """
+                    """
                             Overloaded toString function.
                             """.trimIndent()
-                    )
+                )
                     // using triple quote for long strings
                     .addStatement(
                         propertyMap.keys.joinToString(
@@ -215,10 +216,10 @@ internal abstract class BaseVisitor(
 
             // Function equals
             val equalsBuilder = FunSpec.builder("equals").addModifiers(KModifier.OVERRIDE).addKdoc(
-                    """
+                """
                         Overloaded equals function.
                         """.trimIndent()
-                ).addParameter("other", ANY.copy(nullable = true))
+            ).addParameter("other", ANY.copy(nullable = true))
                 .addStatement("if (this === other) return true")
                 .addStatement("if (javaClass != other?.javaClass) return false")
                 .addStatement("other as $className").apply {
@@ -233,46 +234,46 @@ internal abstract class BaseVisitor(
             // Function hashCode
             addFunction(
                 FunSpec.builder("hashCode").addKdoc(
-                        """
+                    """
                             Overloaded hashCode function based on all class properties.
                             """.trimIndent()
-                    ).addModifiers(KModifier.OVERRIDE).addStatement(
-                        propertyMap.keys.ifEmpty {
-                            listOf("javaClass")
-                        }.joinToString(
-                            prefix = "return Objects.hash(", separator = ", ", postfix = ")"
-                        )
-                    ).returns(Int::class).build()
+                ).addModifiers(KModifier.OVERRIDE).addStatement(
+                    propertyMap.keys.ifEmpty {
+                        listOf("javaClass")
+                    }.joinToString(
+                        prefix = "return Objects.hash(", separator = ", ", postfix = ")"
+                    )
+                ).returns(Int::class).build()
             )
 
             if (isGenerateCopyMethod) {
                 // Function copy
                 addFunction(FunSpec.builder("copy").addKdoc(
-                        """
+                    """
                             Convert to "copy" function.
                             """.trimIndent()
-                    ).addParameter(
-                        ParameterSpec.builder(
-                            "builder", LambdaTypeName.get(
-                                classNameObject.nestedClass("Builder"),
-                                emptyList(),
-                                ClassName("kotlin", "Unit")
-                            )
-                        ).build()
-                    ).addStatement((propertyMap.filter {
-                        it.value.isMutable
-                    }.keys.map { str ->
-                        "${indent()}.set${
-                            str.toString().replaceFirstChar {
-                                if (it.isLowerCase()) it.titlecase(Locale.getDefault())
-                                else it.toString()
-                            }
-                        }($str)"
-                    } + listOf(
-                        "${indent()}.apply(builder)", "${indent()}.build()"
-                    )).joinToString(
-                        prefix = "return Builder($mandatoryParams)\n", separator = "\n"
-                    )).returns(ClassName("", className)).build())
+                ).addParameter(
+                    ParameterSpec.builder(
+                        "builder", LambdaTypeName.get(
+                            classNameObject.nestedClass("Builder"),
+                            emptyList(),
+                            ClassName("kotlin", "Unit")
+                        )
+                    ).build()
+                ).addStatement((propertyMap.filter {
+                    it.value.isMutable
+                }.keys.map { str ->
+                    "${indent()}.set${
+                        str.toString().replaceFirstChar {
+                            if (it.isLowerCase()) it.titlecase(Locale.getDefault())
+                            else it.toString()
+                        }
+                    }($str)"
+                } + listOf(
+                    "${indent()}.apply(builder)", "${indent()}.build()"
+                )).joinToString(
+                    prefix = "return Builder($mandatoryParams)\n", separator = "\n"
+                )).returns(ClassName("", className)).build())
             }
         }
 
@@ -310,40 +311,41 @@ internal abstract class BaseVisitor(
                         propertyName,
                         property.value.typeName
                     ).initializer(
-                            CodeBlock.builder().add(
-                                    property.value.defaultValue ?: "null"
-                                ).build()
-                        ).addKdoc(
-                            """
+                        CodeBlock.builder().add(
+                            property.value.defaultValue ?: "null"
+                        ).build()
+                    ).addKdoc(
+                        """
                             |${property.value.kDoc}
                             """.trimMargin()
-                        ).apply {
-                            if (property.value.isMutable) {
-                                addAnnotation(
-                                    AnnotationSpec.builder(JvmSynthetic::class)
-                                        .useSiteTarget(AnnotationSpec.UseSiteTarget.SET).build()
-                                )
-                            }
-                        }.apply {
-                            if (property.value.isMutable) {
-                                mutable(true)
-                            } else {
-                                mutable(false)
-                                addModifiers(KModifier.INTERNAL)
-                            }
-                        }.build())
+                    ).apply {
+                        if (property.value.isMutable) {
+                            addAnnotation(
+                                AnnotationSpec.builder(JvmSynthetic::class)
+                                    .useSiteTarget(AnnotationSpec.UseSiteTarget.SET).build()
+                            )
+                        }
+                    }.apply {
+                        if (property.value.isMutable) {
+                            mutable(true)
+                        } else {
+                            mutable(false)
+                            addModifiers(KModifier.INTERNAL)
+                        }
+                    }.build()
+                    )
                 }
 
                 if (property.value.isMutable) {
                     builderBuilder.addFunction(FunSpec.builder("set${
-                            propertyName.replaceFirstChar {
-                                if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
-                            }
-                        }").addKdoc("""
+                        propertyName.replaceFirstChar {
+                            if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
+                        }
+                    }").addKdoc("""
                             |Setter for $propertyName: ${
-                            property.value.kDoc.trimEnd('.')
-                                .replaceFirstChar { it.lowercase(Locale.getDefault()) }
-                        }.
+                        property.value.kDoc.trimEnd('.')
+                            .replaceFirstChar { it.lowercase(Locale.getDefault()) }
+                    }.
                             |
                             |@param $propertyName
                             |@return Builder
@@ -405,43 +407,47 @@ internal abstract class BaseVisitor(
                     }.isNotEmpty()
 
                     if (hasNonMandatoryParams) {
-                        //constructor that receives mandatory param and then builder
-                        val classConstructorWithParamBuilder = FunSpec.constructorBuilder()
-                        classConstructorWithParamBuilder.addModifiers(KModifier.PUBLIC)
+                        listOf(true, false).forEach { withInitializer ->
+                            //constructor that receives mandatory param and then builder
+                            val classConstructorWithParamBuilder = FunSpec.constructorBuilder()
+                            classConstructorWithParamBuilder.addModifiers(KModifier.PUBLIC)
 
-                        val mandatoryProperty = propertyMap.filter {
-                            it.value.mandatoryForConstructor
-                        }
+                            val mandatoryProperty = propertyMap.filter {
+                                it.value.mandatoryForConstructor
+                            }
 
-                        mandatoryProperty.forEach {
-                            classConstructorWithParamBuilder.addParameter(
-                                it.key.toString(), it.value.typeName
-                            )
-                        }
-
-
-                        classConstructorWithParamBuilder.addParameter(
-                            ParameterSpec.builder(
-                                "initializer", LambdaTypeName.get(
-                                    classNameObject.nestedClass("Builder"),
-                                    emptyList(),
-                                    ClassName("kotlin", "Unit")
+                            mandatoryProperty.forEach {
+                                classConstructorWithParamBuilder.addParameter(
+                                    it.key.toString(), it.value.typeName
                                 )
-                            ).build()
-                        )
+                            }
 
-                        classConstructorWithParamBuilder.callThisConstructor(
-                            mandatoryProperty.keys.joinToString(
-                                prefix = "\n${indent()}Builder(\n",
-                                transform = { "${indent(2)}$it" },
-                                separator = ",\n",
-                                postfix = "\n${indent()}).apply(initializer)\n"
+                            if (withInitializer) {
+                                classConstructorWithParamBuilder.addParameter(
+                                    ParameterSpec.builder(
+                                        "initializer", LambdaTypeName.get(
+                                            classNameObject.nestedClass("Builder"),
+                                            emptyList(),
+                                            ClassName("kotlin", "Unit")
+                                        )
+                                    ).build()
+                                )
+                            }
+                            classConstructorWithParamBuilder.callThisConstructor(
+                                mandatoryProperty.keys.joinToString(
+                                    prefix = "\n${indent()}Builder(\n",
+                                    transform = { "${indent(2)}$it" },
+                                    separator = ",\n",
+                                    postfix = "\n${indent()})" + if(withInitializer) ".apply(initializer)\n" else "\n"
+                                )
                             )
-                        )
-                        classBuilder.addFunction(classConstructorWithParamBuilder.build())
+                            classBuilder.addFunction(classConstructorWithParamBuilder.build())
+                        }
                     } else {
                         isPrimaryConstructorPrivate = false
                     }
+                } else {
+                    isPrimaryConstructorPrivate = false
                 }
 
                 if (builderConstructorNeeded.not()) {
@@ -496,8 +502,8 @@ internal abstract class BaseVisitor(
 
             // initializer function
             val initializerFunctionBuilder = FunSpec.builder(className).addKdoc(
-                    kdocs
-                ).returns(classNameObject)
+                kdocs
+            ).returns(classNameObject)
 
 
             if (mandatoryParams.isNotEmpty()) {
@@ -521,12 +527,12 @@ internal abstract class BaseVisitor(
                     .addStatement("return ${classNameObject.simpleNames.joinToString(".")}.Builder($mandatoryParams).apply(initializer).build()")
             } else {
                 initializerFunctionBuilder.addStatement(
-                        "return ${
-                            classNameObject.simpleNames.joinToString(
-                                "."
-                            )
-                        }.Builder($mandatoryParams).build()"
-                    )
+                    "return ${
+                        classNameObject.simpleNames.joinToString(
+                            "."
+                        )
+                    }.Builder($mandatoryParams).build()"
+                )
             }
 
             initializerFunctionBuilder

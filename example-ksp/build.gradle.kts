@@ -36,6 +36,9 @@ android {
 dependencies {
     implementation(project(":annotation"))
     ksp(project(":processor"))
+
+    testImplementation(libs.junit)
+
 }
 
 ksp {
