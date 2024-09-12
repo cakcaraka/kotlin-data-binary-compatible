@@ -1,11 +1,8 @@
 package com.cakcaraka.databinarycompatible.example_ksp.data
 
-import android.os.Parcelable
 import com.cakcaraka.databinarycompatible.annotation.DataClass
 import com.cakcaraka.databinarycompatible.annotation.DefaultValue
 import com.cakcaraka.databinarycompatible.annotation.SealedParentDataClass
-
-
 
 
 @com.cakcaraka.databinarycompatible.example_ksp.annotation.DataClass(
@@ -34,6 +31,9 @@ interface Example {
 
     @DefaultValue(stringValue = "Test")
     val testWithDefaultString: String
+
+    @DefaultValue(stringValue = "Test")
+    val testWithDefaultString2: String
 }
 
 

@@ -1,0 +1,251 @@
+public final class com/cakcaraka/databinarycompatible/example_ksp/Example : com/cakcaraka/databinarycompatible/example_ksp/data/Example {
+	public synthetic fun <init> (Lcom/cakcaraka/databinarycompatible/example_ksp/Example$Builder;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/String;IFDLjava/lang/String;Ljava/lang/Integer;Ljava/lang/Float;Ljava/lang/Double;)V
+	public fun <init> (Ljava/lang/String;IFDLjava/lang/String;Ljava/lang/Integer;Ljava/lang/Float;Ljava/lang/Double;Lkotlin/jvm/functions/Function1;)V
+	public final fun copy (Lkotlin/jvm/functions/Function1;)Lcom/cakcaraka/databinarycompatible/example_ksp/Example;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getTestWithDefaultString ()Ljava/lang/String;
+	public fun getTestWithDouble ()D
+	public fun getTestWithDoubleNullable ()Ljava/lang/Double;
+	public fun getTestWithFloat ()F
+	public fun getTestWithFloatNullable ()Ljava/lang/Float;
+	public fun getTestWithInt ()I
+	public fun getTestWithIntNullable ()Ljava/lang/Integer;
+	public fun getTestWithString ()Ljava/lang/String;
+	public fun getTestWithStringNullable ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/cakcaraka/databinarycompatible/example_ksp/Example$Builder {
+	public fun <init> (Ljava/lang/String;IFDLjava/lang/String;Ljava/lang/Integer;Ljava/lang/Float;Ljava/lang/Double;)V
+	public final fun build ()Lcom/cakcaraka/databinarycompatible/example_ksp/Example;
+	public final fun getTestWithDefaultString ()Ljava/lang/String;
+	public final fun getTestWithDouble ()D
+	public final fun getTestWithDoubleNullable ()Ljava/lang/Double;
+	public final fun getTestWithFloat ()F
+	public final fun getTestWithFloatNullable ()Ljava/lang/Float;
+	public final fun getTestWithInt ()I
+	public final fun getTestWithIntNullable ()Ljava/lang/Integer;
+	public final fun getTestWithString ()Ljava/lang/String;
+	public final fun getTestWithStringNullable ()Ljava/lang/String;
+	public final fun setTestWithDefaultString (Ljava/lang/String;)Lcom/cakcaraka/databinarycompatible/example_ksp/Example$Builder;
+	public final synthetic fun setTestWithDefaultString (Ljava/lang/String;)V
+	public final fun setTestWithDouble (D)Lcom/cakcaraka/databinarycompatible/example_ksp/Example$Builder;
+	public final synthetic fun setTestWithDouble (D)V
+	public final fun setTestWithDoubleNullable (Ljava/lang/Double;)Lcom/cakcaraka/databinarycompatible/example_ksp/Example$Builder;
+	public final synthetic fun setTestWithDoubleNullable (Ljava/lang/Double;)V
+	public final fun setTestWithFloat (F)Lcom/cakcaraka/databinarycompatible/example_ksp/Example$Builder;
+	public final synthetic fun setTestWithFloat (F)V
+	public final fun setTestWithFloatNullable (Ljava/lang/Float;)Lcom/cakcaraka/databinarycompatible/example_ksp/Example$Builder;
+	public final synthetic fun setTestWithFloatNullable (Ljava/lang/Float;)V
+	public final fun setTestWithInt (I)Lcom/cakcaraka/databinarycompatible/example_ksp/Example$Builder;
+	public final synthetic fun setTestWithInt (I)V
+	public final fun setTestWithIntNullable (Ljava/lang/Integer;)Lcom/cakcaraka/databinarycompatible/example_ksp/Example$Builder;
+	public final synthetic fun setTestWithIntNullable (Ljava/lang/Integer;)V
+	public final fun setTestWithString (Ljava/lang/String;)Lcom/cakcaraka/databinarycompatible/example_ksp/Example$Builder;
+	public final synthetic fun setTestWithString (Ljava/lang/String;)V
+	public final fun setTestWithStringNullable (Ljava/lang/String;)Lcom/cakcaraka/databinarycompatible/example_ksp/Example$Builder;
+	public final synthetic fun setTestWithStringNullable (Ljava/lang/String;)V
+}
+
+public abstract class com/cakcaraka/databinarycompatible/example_ksp/SealedExample {
+	public fun equals (Ljava/lang/Object;)Z
+	public abstract fun getTest ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/cakcaraka/databinarycompatible/example_ksp/SealedExample$Sealed1 : com/cakcaraka/databinarycompatible/example_ksp/SealedExample, com/cakcaraka/databinarycompatible/example_ksp/data/SealedExample$Sealed1 {
+	public fun <init> ()V
+	public synthetic fun <init> (Lcom/cakcaraka/databinarycompatible/example_ksp/SealedExample$Sealed1$Builder;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/String;)V
+	public final fun copy (Lkotlin/jvm/functions/Function1;)Lcom/cakcaraka/databinarycompatible/example_ksp/SealedExample$Sealed1;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getTest ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/cakcaraka/databinarycompatible/example_ksp/SealedExample$Sealed1$Builder {
+	public fun <init> ()V
+	public final fun build ()Lcom/cakcaraka/databinarycompatible/example_ksp/SealedExample$Sealed1;
+}
+
+public final class com/cakcaraka/databinarycompatible/example_ksp/SealedExample$Sealed2 : com/cakcaraka/databinarycompatible/example_ksp/SealedExample, com/cakcaraka/databinarycompatible/example_ksp/data/SealedExample$Sealed2 {
+	public fun <init> ()V
+	public synthetic fun <init> (Lcom/cakcaraka/databinarycompatible/example_ksp/SealedExample$Sealed2$Builder;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/String;)V
+	public final fun copy (Lkotlin/jvm/functions/Function1;)Lcom/cakcaraka/databinarycompatible/example_ksp/SealedExample$Sealed2;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getTest ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/cakcaraka/databinarycompatible/example_ksp/SealedExample$Sealed2$Builder {
+	public fun <init> ()V
+	public final fun build ()Lcom/cakcaraka/databinarycompatible/example_ksp/SealedExample$Sealed2;
+	public final fun getTest ()Ljava/lang/String;
+	public final fun setTest (Ljava/lang/String;)Lcom/cakcaraka/databinarycompatible/example_ksp/SealedExample$Sealed2$Builder;
+	public final synthetic fun setTest (Ljava/lang/String;)V
+}
+
+public abstract interface annotation class com/cakcaraka/databinarycompatible/example_ksp/annotation/DataClass : java/lang/annotation/Annotation {
+	public abstract fun generatedClassName ()Ljava/lang/String;
+}
+
+public abstract interface class com/cakcaraka/databinarycompatible/example_ksp/data/Example {
+	public abstract fun getTestWithDefaultString ()Ljava/lang/String;
+	public abstract fun getTestWithDouble ()D
+	public abstract fun getTestWithDoubleNullable ()Ljava/lang/Double;
+	public abstract fun getTestWithFloat ()F
+	public abstract fun getTestWithFloatNullable ()Ljava/lang/Float;
+	public abstract fun getTestWithInt ()I
+	public abstract fun getTestWithIntNullable ()Ljava/lang/Integer;
+	public abstract fun getTestWithString ()Ljava/lang/String;
+	public abstract fun getTestWithStringNullable ()Ljava/lang/String;
+}
+
+public abstract interface class com/cakcaraka/databinarycompatible/example_ksp/data/SealedExample {
+	public abstract fun getTest ()Ljava/lang/String;
+}
+
+public abstract interface class com/cakcaraka/databinarycompatible/example_ksp/data/SealedExample$Sealed1 : com/cakcaraka/databinarycompatible/example_ksp/data/SealedExample {
+	public abstract fun getTest ()Ljava/lang/String;
+}
+
+public abstract interface class com/cakcaraka/databinarycompatible/example_ksp/data/SealedExample$Sealed2 : com/cakcaraka/databinarycompatible/example_ksp/data/SealedExample {
+	public abstract fun getTest ()Ljava/lang/String;
+}
+
+public final class com/cakcaraka/databinarycompatible/example_ksp/data/single/MandatoryNonNullableNoOptional : com/cakcaraka/databinarycompatible/example_ksp/data/single/data/MandatoryNonNullableNoOptional {
+	public synthetic fun <init> (Lcom/cakcaraka/databinarycompatible/example_ksp/data/single/MandatoryNonNullableNoOptional$Builder;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/String;)V
+	public final fun copy (Lkotlin/jvm/functions/Function1;)Lcom/cakcaraka/databinarycompatible/example_ksp/data/single/MandatoryNonNullableNoOptional;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getTest ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/cakcaraka/databinarycompatible/example_ksp/data/single/MandatoryNonNullableNoOptional$Builder {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun build ()Lcom/cakcaraka/databinarycompatible/example_ksp/data/single/MandatoryNonNullableNoOptional;
+	public final fun getTest ()Ljava/lang/String;
+	public final fun setTest (Ljava/lang/String;)Lcom/cakcaraka/databinarycompatible/example_ksp/data/single/MandatoryNonNullableNoOptional$Builder;
+	public final synthetic fun setTest (Ljava/lang/String;)V
+}
+
+public final class com/cakcaraka/databinarycompatible/example_ksp/data/single/MandatoryNullableNoOptional : com/cakcaraka/databinarycompatible/example_ksp/data/single/data/MandatoryNullableNoOptional {
+	public synthetic fun <init> (Lcom/cakcaraka/databinarycompatible/example_ksp/data/single/MandatoryNullableNoOptional$Builder;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/String;)V
+	public final fun copy (Lkotlin/jvm/functions/Function1;)Lcom/cakcaraka/databinarycompatible/example_ksp/data/single/MandatoryNullableNoOptional;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getTest ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/cakcaraka/databinarycompatible/example_ksp/data/single/MandatoryNullableNoOptional$Builder {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun build ()Lcom/cakcaraka/databinarycompatible/example_ksp/data/single/MandatoryNullableNoOptional;
+	public final fun getTest ()Ljava/lang/String;
+	public final fun setTest (Ljava/lang/String;)Lcom/cakcaraka/databinarycompatible/example_ksp/data/single/MandatoryNullableNoOptional$Builder;
+	public final synthetic fun setTest (Ljava/lang/String;)V
+}
+
+public final class com/cakcaraka/databinarycompatible/example_ksp/data/single/NoMandatoryOptionalNonNullableFinal : com/cakcaraka/databinarycompatible/example_ksp/data/single/data/NoMandatoryOptionalNonNullableFinal {
+	public fun <init> ()V
+	public synthetic fun <init> (Lcom/cakcaraka/databinarycompatible/example_ksp/data/single/NoMandatoryOptionalNonNullableFinal$Builder;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/String;)V
+	public final fun copy (Lkotlin/jvm/functions/Function1;)Lcom/cakcaraka/databinarycompatible/example_ksp/data/single/NoMandatoryOptionalNonNullableFinal;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getTest ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/cakcaraka/databinarycompatible/example_ksp/data/single/NoMandatoryOptionalNonNullableFinal$Builder {
+	public fun <init> ()V
+	public final fun build ()Lcom/cakcaraka/databinarycompatible/example_ksp/data/single/NoMandatoryOptionalNonNullableFinal;
+}
+
+public final class com/cakcaraka/databinarycompatible/example_ksp/data/single/NoMandatoryOptionalNonNullableNonFinal : com/cakcaraka/databinarycompatible/example_ksp/data/single/data/NoMandatoryOptionalNonNullableNonFinal {
+	public fun <init> ()V
+	public synthetic fun <init> (Lcom/cakcaraka/databinarycompatible/example_ksp/data/single/NoMandatoryOptionalNonNullableNonFinal$Builder;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/String;)V
+	public final fun copy (Lkotlin/jvm/functions/Function1;)Lcom/cakcaraka/databinarycompatible/example_ksp/data/single/NoMandatoryOptionalNonNullableNonFinal;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getTest ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/cakcaraka/databinarycompatible/example_ksp/data/single/NoMandatoryOptionalNonNullableNonFinal$Builder {
+	public fun <init> ()V
+	public final fun build ()Lcom/cakcaraka/databinarycompatible/example_ksp/data/single/NoMandatoryOptionalNonNullableNonFinal;
+	public final fun getTest ()Ljava/lang/String;
+	public final fun setTest (Ljava/lang/String;)Lcom/cakcaraka/databinarycompatible/example_ksp/data/single/NoMandatoryOptionalNonNullableNonFinal$Builder;
+	public final synthetic fun setTest (Ljava/lang/String;)V
+}
+
+public final class com/cakcaraka/databinarycompatible/example_ksp/data/single/NoMandatoryOptionalNullableFinal : com/cakcaraka/databinarycompatible/example_ksp/data/single/data/NoMandatoryOptionalNullableFinal {
+	public fun <init> ()V
+	public synthetic fun <init> (Lcom/cakcaraka/databinarycompatible/example_ksp/data/single/NoMandatoryOptionalNullableFinal$Builder;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/String;)V
+	public final fun copy (Lkotlin/jvm/functions/Function1;)Lcom/cakcaraka/databinarycompatible/example_ksp/data/single/NoMandatoryOptionalNullableFinal;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getTest ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/cakcaraka/databinarycompatible/example_ksp/data/single/NoMandatoryOptionalNullableFinal$Builder {
+	public fun <init> ()V
+	public final fun build ()Lcom/cakcaraka/databinarycompatible/example_ksp/data/single/NoMandatoryOptionalNullableFinal;
+}
+
+public final class com/cakcaraka/databinarycompatible/example_ksp/data/single/NoMandatoryOptionalNullableNonFinal : com/cakcaraka/databinarycompatible/example_ksp/data/single/data/NoMandatoryOptionalNullableNonFinal {
+	public fun <init> ()V
+	public synthetic fun <init> (Lcom/cakcaraka/databinarycompatible/example_ksp/data/single/NoMandatoryOptionalNullableNonFinal$Builder;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/String;)V
+	public final fun copy (Lkotlin/jvm/functions/Function1;)Lcom/cakcaraka/databinarycompatible/example_ksp/data/single/NoMandatoryOptionalNullableNonFinal;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getTest ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/cakcaraka/databinarycompatible/example_ksp/data/single/NoMandatoryOptionalNullableNonFinal$Builder {
+	public fun <init> ()V
+	public final fun build ()Lcom/cakcaraka/databinarycompatible/example_ksp/data/single/NoMandatoryOptionalNullableNonFinal;
+	public final fun getTest ()Ljava/lang/String;
+	public final fun setTest (Ljava/lang/String;)Lcom/cakcaraka/databinarycompatible/example_ksp/data/single/NoMandatoryOptionalNullableNonFinal$Builder;
+	public final synthetic fun setTest (Ljava/lang/String;)V
+}
+
+public abstract interface class com/cakcaraka/databinarycompatible/example_ksp/data/single/data/MandatoryNonNullableNoOptional {
+	public abstract fun getTest ()Ljava/lang/String;
+}
+
+public abstract interface class com/cakcaraka/databinarycompatible/example_ksp/data/single/data/MandatoryNullableNoOptional {
+	public abstract fun getTest ()Ljava/lang/String;
+}
+
+public abstract interface class com/cakcaraka/databinarycompatible/example_ksp/data/single/data/NoMandatoryOptionalNonNullableFinal {
+	public abstract fun getTest ()Ljava/lang/String;
+}
+
+public abstract interface class com/cakcaraka/databinarycompatible/example_ksp/data/single/data/NoMandatoryOptionalNonNullableNonFinal {
+	public abstract fun getTest ()Ljava/lang/String;
+}
+
+public abstract interface class com/cakcaraka/databinarycompatible/example_ksp/data/single/data/NoMandatoryOptionalNullableFinal {
+	public abstract fun getTest ()Ljava/lang/String;
+}
+
+public abstract interface class com/cakcaraka/databinarycompatible/example_ksp/data/single/data/NoMandatoryOptionalNullableNonFinal {
+	public abstract fun getTest ()Ljava/lang/String;
+}
+
