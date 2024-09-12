@@ -31,13 +31,15 @@ internal class DataClassVisitor(
 
     override val isAddSelfAsSuperInterface: Boolean = true
 
-    override val isGeneratePrimaryConstructor: Boolean = true
-
     override val isGenerateCopyMethod: Boolean = true
 
-    override val isGenerateBuilder: Boolean = true
+    override val constructingMechanism: ConstructingMechanism = ConstructingMechanism(
+        dsl = false,
+        builder = true,
+        primaryConstructor = true,
+        secondaryConstructor = true
+    )
 
-    override val isGenerateInitializer: Boolean = true
 
     override fun writeFileSpec(
         classDeclaration: KSClassDeclaration,

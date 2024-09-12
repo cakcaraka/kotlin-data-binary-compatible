@@ -41,15 +41,11 @@ internal abstract class BaseVisitor(
 
     abstract val isAddSelfAsSuperInterface: Boolean
 
-    abstract val isGeneratePrimaryConstructor: Boolean
-
     abstract val initializeProperty: Boolean
 
     abstract val isGenerateCopyMethod: Boolean
 
-    abstract val isGenerateBuilder: Boolean
-
-    abstract val isGenerateInitializer: Boolean
+    abstract val constructingMechanism: ConstructingMechanism
 
     abstract fun writeFileSpec(
         classDeclaration: KSClassDeclaration,
@@ -200,25 +196,6 @@ internal abstract class BaseVisitor(
                 )
             }
 
-            if (isGeneratePrimaryConstructor) {
-                // Constructor
-                val constructorBuilder = FunSpec.constructorBuilder()
-                constructorBuilder.addModifiers(KModifier.PRIVATE)
-                for (entry in propertyMap) {
-                    val modifiers: MutableSet<KModifier> = mutableSetOf()
-                    if (entry.value.hasOverridesModifier) {
-                        modifiers.add(KModifier.OVERRIDE)
-                    }
-                    constructorBuilder.addParameter(
-                        entry.key.toString(),
-                        entry.value.typeName,
-                        modifiers
-                    )
-
-                }
-                primaryConstructor(constructorBuilder.build())
-            }
-
             // Property Initializer
             for (entry in propertyMap) {
                 addProperty(
@@ -326,7 +303,7 @@ internal abstract class BaseVisitor(
                             (propertyMap.filter {
                                 it.value.isMutable
                             }.keys.map { str ->
-                                "${" ".repeat(INDENTATION_SIZE)}.set${
+                                "${indent()}.set${
                                     str.toString().replaceFirstChar {
                                         if (it.isLowerCase())
                                             it.titlecase(Locale.getDefault())
@@ -334,8 +311,8 @@ internal abstract class BaseVisitor(
                                     }
                                 }($str)"
                             } + listOf(
-                                "${" ".repeat(INDENTATION_SIZE)}.apply(builder)",
-                                "${" ".repeat(INDENTATION_SIZE)}.build()"
+                                "${indent()}.apply(builder)",
+                                "${indent()}.build()"
                             )).joinToString(
                                 prefix = "return Builder($mandatoryParams)\n",
                                 separator = "\n"
@@ -347,7 +324,9 @@ internal abstract class BaseVisitor(
             }
         }
 
-        if (isGenerateBuilder) {
+        var isPrimaryConstructorPrivate = true
+
+        if (constructingMechanism.builder) {
             // Builder pattern
             val builderBuilder = TypeSpec.classBuilder("Builder")
             var builderConstructorNeeded = false
@@ -407,7 +386,7 @@ internal abstract class BaseVisitor(
                                     mutable(true)
                                 } else {
                                     mutable(false)
-                                    addModifiers(KModifier.PRIVATE)
+                                    addModifiers(KModifier.INTERNAL)
                                 }
                             }
                             .build()
@@ -456,12 +435,7 @@ internal abstract class BaseVisitor(
                 """.trimMargin()
             )
             buildFunction.addStatement(
-                propertyMap.keys.joinToString(
-                    prefix = "return $className(",
-                    transform = { "$it" },
-                    separator = ", ",
-                    postfix = ")"
-                )
+                "return $className(this)"
             )
                 .returns(classNameObject)
 
@@ -474,9 +448,110 @@ internal abstract class BaseVisitor(
             )
             builderBuilder.addFunction(buildFunction.build())
             classBuilder.addType(builderBuilder.build())
+
+            if (constructingMechanism.secondaryConstructor) {
+
+                //constructor that receives builder
+                val classConstructorWithBuilder = FunSpec.constructorBuilder()
+                classConstructorWithBuilder.addModifiers(KModifier.PRIVATE)
+                classConstructorWithBuilder.addParameter(
+                    "builder",
+                    classNameObject.nestedClass("Builder")
+                )
+                classConstructorWithBuilder.callThisConstructor(
+                    propertyMap.keys.joinToString(
+                        prefix = "\n",
+                        transform = { "${indent()}builder.$it" },
+                        separator = ",\n",
+                        postfix = "\n"
+                    )
+                )
+                classBuilder.addFunction(classConstructorWithBuilder.build())
+
+
+                //constructor with default params
+                if (mandatoryParams.isNotEmpty()) {
+                    //if all mandatory, just change primary constructor to public
+                    val hasNonMandatoryParams = propertyMap.filter {
+                        it.value.mandatoryForConstructor.not()
+                    }.isNotEmpty()
+
+                    if (hasNonMandatoryParams) {
+                        //constructor that receives mandatory param and then builder
+                        val classConstructorWithParamBuilder = FunSpec.constructorBuilder()
+                        classConstructorWithParamBuilder.addModifiers(KModifier.PUBLIC)
+
+                        val mandatoryProperty = propertyMap.filter {
+                            it.value.mandatoryForConstructor
+                        }
+
+                        mandatoryProperty.forEach {
+                            classConstructorWithParamBuilder.addParameter(
+                                it.key.toString(),
+                                it.value.typeName
+                            )
+                        }
+
+
+                        classConstructorWithParamBuilder.addParameter(
+                            ParameterSpec.builder(
+                                "initializer",
+                                LambdaTypeName.get(
+                                    classNameObject.nestedClass("Builder"),
+                                    emptyList(),
+                                    ClassName("kotlin", "Unit")
+                                )
+                            ).build()
+                        )
+
+                        classConstructorWithParamBuilder.callThisConstructor(
+                            mandatoryProperty.keys.joinToString(
+                                prefix = "\n${indent()}Builder(\n",
+                                transform = { "${indent(2)}$it" },
+                                separator = ",\n",
+                                postfix = "\n${indent()}).apply(initializer)\n"
+                            )
+                        )
+                        classBuilder.addFunction(classConstructorWithParamBuilder.build())
+                    } else {
+                        isPrimaryConstructorPrivate = false
+                    }
+                }
+
+                if (builderConstructorNeeded.not()) {
+                    val classConstructorWithParamBuilder = FunSpec.constructorBuilder()
+                    classConstructorWithParamBuilder.addModifiers(KModifier.PUBLIC)
+                    classConstructorWithParamBuilder.callThisConstructor(
+                        "Builder()"
+                    )
+
+                    classBuilder.addFunction(classConstructorWithParamBuilder.build())
+                }
+            }
         }
 
-        val initializerFunction = if (isGenerateInitializer) {
+        if (constructingMechanism.primaryConstructor) {
+            // Constructor
+            val constructorBuilder = FunSpec.constructorBuilder()
+            if (isPrimaryConstructorPrivate) {
+                constructorBuilder.addModifiers(KModifier.PRIVATE)
+            }
+            for (entry in propertyMap) {
+                val modifiers: MutableSet<KModifier> = mutableSetOf()
+                if (entry.value.hasOverridesModifier) {
+                    modifiers.add(KModifier.OVERRIDE)
+                }
+                constructorBuilder.addParameter(
+                    entry.key.toString(),
+                    entry.value.typeName,
+                    modifiers
+                )
+
+            }
+            classBuilder.primaryConstructor(constructorBuilder.build())
+        }
+
+        val initializerFunction = if (constructingMechanism.dsl) {
             val hasMutableParams = propertyMap.any {
                 it.value.isMutable
             }
@@ -615,4 +690,24 @@ internal abstract class BaseVisitor(
     }
 
     private fun KSClassDeclaration.isInterface() = classKind == ClassKind.INTERFACE
+
+    private fun indent(repeat: Int=1): String {
+        return " ".repeat(repeat*INDENTATION_SIZE)
+    }
+
+    internal data class ConstructingMechanism(
+        val dsl: Boolean,
+        val builder: Boolean,
+        val primaryConstructor: Boolean,
+        val secondaryConstructor: Boolean
+    ) {
+        companion object {
+            val NONE = ConstructingMechanism(
+                dsl = false,
+                builder = false,
+                primaryConstructor = false,
+                secondaryConstructor = false
+            )
+        }
+    }
 }

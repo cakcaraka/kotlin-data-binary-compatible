@@ -6,6 +6,12 @@ import com.cakcaraka.databinarycompatible.annotation.DefaultValue
 import com.cakcaraka.databinarycompatible.annotation.SealedParentDataClass
 
 
+@DataClass
+interface ExampleWithNoMandatory {
+    @DefaultValue(stringValue = "Test")
+    val test: String
+}
+
 @com.cakcaraka.databinarycompatible.example_ksp.annotation.DataClass(
     generatedClassName = "ExampleNotTaken" //this should be ignored and not class
 )
@@ -29,6 +35,9 @@ interface Example {
     val testWithFloatNullable: Float?
 
     val testWithDoubleNullable: Double?
+
+    @DefaultValue(stringValue = "Test")
+    val testWithDefaultString: String
 }
 
 @com.cakcaraka.databinarycompatible.example_ksp.annotation.DataClass
@@ -49,6 +58,7 @@ interface ExampleIgnored {
     val testWithFloatNullable: Float?
 
     val testWithDoubleNullable: Double?
+
 }
 
 @DataClass(
@@ -72,7 +82,13 @@ interface SealedExample {
 
     @DataClass
     interface Sealed1: SealedExample {
-        @DefaultValue(stringValue = "Test")
+        @DefaultValue(stringValue = "Test", immutable = true)
+        override val test: String
+    }
+
+    @DataClass
+    interface Sealed2: SealedExample {
+        @DefaultValue(stringValue = "Test", immutable = false)
         override val test: String
     }
 }

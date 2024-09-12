@@ -28,15 +28,11 @@ internal class SealedParentVisitor(
 
     override val isAddSelfAsSuperInterface: Boolean = false
 
-    override val isGeneratePrimaryConstructor: Boolean = false
-
     override val initializeProperty: Boolean = false
 
     override val isGenerateCopyMethod: Boolean = false
 
-    override val isGenerateBuilder: Boolean = false
-
-    override val isGenerateInitializer: Boolean = false
+    override val constructingMechanism: ConstructingMechanism = ConstructingMechanism.NONE
 
     override fun writeFileSpec(
         classDeclaration: KSClassDeclaration,
