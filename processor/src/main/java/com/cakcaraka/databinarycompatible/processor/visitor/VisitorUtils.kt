@@ -98,7 +98,7 @@ object VisitorUtils {
                 }.isNotEmpty()
 
                 if (hasNonMandatoryParams) {
-                    listOf(true, false).forEach { withInitializer ->
+                    listOf(false, true).forEach { withInitializer ->
                         //constructor that receives mandatory param and then builder
                         val classConstructorWithParamBuilder = FunSpec.constructorBuilder()
                         classConstructorWithParamBuilder.addModifiers(KModifier.PUBLIC)
