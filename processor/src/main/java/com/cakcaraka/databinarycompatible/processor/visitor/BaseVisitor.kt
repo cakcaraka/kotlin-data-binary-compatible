@@ -81,7 +81,20 @@ internal abstract class BaseVisitor(
         val imports = ArrayList<String>()
         annotatedClassData?.arguments?.firstOrNull {
             it.name?.getShortName() == "imports"
-        }?.value?.let { imports.addAll(it as ArrayList<String>) }
+        }?.value?.let { it as ArrayList<String>}?.let {
+            it.forEach {
+                imports.add(
+                    it.replace(
+                        "{originalPackageName}",
+                        classDeclaration.packageName.asString()
+                    ).replace(
+                        "{originalQualifiedName}",
+                        classDeclaration.qualifiedName?.asString().orEmpty()
+                    )
+                )
+            }
+        }
+
 
         val otherAnnotations = classDeclaration.annotations.filter {
             it.annotationType.resolve().declaration.qualifiedName?.asString() != annotationClass.qualifiedName

@@ -53,3 +53,32 @@ interface SealedExample {
         override val test: String
     }
 }
+
+@DataClass
+interface ExampleImmutableKeepSetter {
+    @DefaultValue(stringValue = "testKeepSetter", mutability = PropertyMutability.IMMUTABLE_KEEP_SETTER)
+    val testKeepSetter: String
+
+    val testRequired: String
+
+    @DefaultValue(stringValue = "testOptional")
+    val testOptional: String
+
+}
+
+@DataClass(
+    imports = [
+        "{originalPackageName}.ExampleImmutableKeepSetter",
+        "{originalQualifiedName}.Companion",
+    ]
+)
+interface ExampleImmutableAllDefaultValue {
+    val testImmutable: String
+
+    @DefaultValue(rawValue = "Companion.DEFAULT_VALUE_TEST_OPTIONAL", mutability = PropertyMutability.IMMUTABLE_KEEP_SETTER)
+    val testOptional: String
+
+    companion object {
+        internal const val DEFAULT_VALUE_TEST_OPTIONAL = "123456"
+    }
+}
