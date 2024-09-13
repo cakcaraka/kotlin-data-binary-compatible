@@ -25,12 +25,6 @@ public class TestSingleParamUsage {
             // no method available
             return null;
         });
-
-        NoMandatoryOptionalNullableFinal testConstructor = new NoMandatoryOptionalNullableFinal(null);
-        NoMandatoryOptionalNullableFinal testConstructorCopy = testEmptyConstructor.copy(builder -> {
-            // no method available
-            return null;
-        });
     }
 
     @Test
@@ -41,7 +35,10 @@ public class TestSingleParamUsage {
             return null;
         });
 
-        NoMandatoryOptionalNullableNonFinal testConstructor = new NoMandatoryOptionalNullableNonFinal(null);
+        NoMandatoryOptionalNullableNonFinal testConstructor = new NoMandatoryOptionalNullableNonFinal(builder -> {
+            //builder.setTest(null);
+            return null;
+        });;
         NoMandatoryOptionalNullableNonFinal testConstructorCopy = testEmptyConstructor.copy(builder -> {
             builder.setTest("test");
             return null;
@@ -51,13 +48,14 @@ public class TestSingleParamUsage {
     @Test
     public void testNoMandatoryOptionalNonNullableFinal() {
         ArrayList<Pair<String, Boolean>> contentAndTestResult = new ArrayList<>();
-        contentAndTestResult.add(new Pair<>(null, false));
+        contentAndTestResult.add(new Pair<>(null, true));
         contentAndTestResult.add(new Pair<>("null", true));
         for (Pair<String, Boolean> contentAndResult : contentAndTestResult) {
             try {
-                NoMandatoryOptionalNonNullableFinal testEmptyConstructor = new NoMandatoryOptionalNonNullableFinal(contentAndResult.getFirst());
+                NoMandatoryOptionalNonNullableFinal testEmptyConstructor = new NoMandatoryOptionalNonNullableFinal();
                 NoMandatoryOptionalNonNullableFinal testEmptyConstructorCopy = testEmptyConstructor.copy(builder -> {
                     // no method available
+                    //builder.setTest("aaa");
                     return null;
                 });
                 Assert.assertTrue("Not Except to success", contentAndResult.getSecond());

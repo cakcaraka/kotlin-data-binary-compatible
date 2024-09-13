@@ -1,6 +1,8 @@
 package com.cakcaraka.databinarycompatible.processor.visitor
 
 import com.cakcaraka.databinarycompatible.processor.DataBinaryCompatibleProcessor.Config
+import com.cakcaraka.databinarycompatible.processor.DefaultValueConfig
+import com.cakcaraka.databinarycompatible.processor.FieldName
 import com.cakcaraka.databinarycompatible.processor.PropertyConfig
 import com.cakcaraka.databinarycompatible.processor.writer.FileGeneratorSpec
 import com.google.devtools.ksp.processing.KSPLogger
@@ -21,7 +23,7 @@ import kotlin.reflect.KClass
 
 internal abstract class BaseVisitor(
     private val logger: KSPLogger,
-    private val defaultValuesMap: Map<KSClassDeclaration, MutableMap<String, Pair<String?, Boolean>>>,
+    private val defaultValuesMap: Map<KSClassDeclaration, MutableMap<FieldName, DefaultValueConfig>>,
     private val nestedClassMapping: MutableMap<ClassName, ClassName>,
     private val config: Config,
 ) : KSVisitorVoid() {
@@ -123,13 +125,10 @@ internal abstract class BaseVisitor(
 
             val addOverridesModifier =
                 Modifier.OVERRIDE in property.modifiers || isAddOverrideModifierToProperties()
-
+            val fieldName = FieldName(property.toString())
             propertyMap[property] = PropertyConfig(
                 typeName = typeName,
-                mandatoryForConstructor = defaultValuesMap[classDeclaration]?.get(property.toString()) == null,
-                defaultValue = defaultValuesMap[classDeclaration]?.get(property.toString())?.first,
-                isMutable = defaultValuesMap[classDeclaration]?.get(property.toString())?.second?.not()
-                    ?: true,
+                defaultValueConfig = defaultValuesMap[classDeclaration]?.get(fieldName),
                 hasOverridesModifier = addOverridesModifier,
                 kDoc = property.docString?.trim(' ', '\n') ?: property.toString()
                     .capitalizeAndAddSpaces(),
@@ -186,11 +185,7 @@ internal abstract class BaseVisitor(
             for (entry in propertyMap) {
                 addProperty(
                     PropertySpec.builder(entry.key.toString(), entry.value.typeName)
-                        .addKdoc(
-                            """
-                                |${entry.value.kDoc}
-                                """.trimMargin()
-                        ).apply {
+                        .apply {
                             if (initializeProperty()) {
                                 initializer(entry.key.toString())
                             } else {
@@ -223,6 +218,7 @@ internal abstract class BaseVisitor(
         }
 
         val constructingFunctions = VisitorUtils.generateConstructingFunctions(
+            logger,
             classNameObject,
             propertyMap,
             constructingMechanism

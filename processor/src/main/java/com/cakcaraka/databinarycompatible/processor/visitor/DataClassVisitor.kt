@@ -2,6 +2,8 @@ package com.cakcaraka.databinarycompatible.processor.visitor
 
 import com.cakcaraka.databinarycompatible.annotation.DataClass
 import com.cakcaraka.databinarycompatible.processor.DataBinaryCompatibleProcessor.Config
+import com.cakcaraka.databinarycompatible.processor.DefaultValueConfig
+import com.cakcaraka.databinarycompatible.processor.FieldName
 import com.cakcaraka.databinarycompatible.processor.writer.FileGeneratorSpec
 import com.cakcaraka.databinarycompatible.processor.writer.FileWriter
 import com.google.devtools.ksp.processing.CodeGenerator
@@ -15,7 +17,7 @@ import kotlin.reflect.KClass
 internal class DataClassVisitor(
     private val codeGenerator: CodeGenerator,
     private val logger: KSPLogger,
-    defaultValuesMap: Map<KSClassDeclaration, MutableMap<String, Pair<String?, Boolean>>>,
+    defaultValuesMap: Map<KSClassDeclaration, MutableMap<FieldName, DefaultValueConfig>>,
     nestedClassMapping: MutableMap<ClassName, ClassName>,
     private val fileGeneratorSpecMap: MutableMap<KSAnnotated, FileGeneratorSpec>,
     config: Config

@@ -2,6 +2,7 @@ package com.cakcaraka.databinarycompatible.example_ksp.data.single.data
 
 import com.cakcaraka.databinarycompatible.annotation.DataClass
 import com.cakcaraka.databinarycompatible.annotation.DefaultValue
+import com.cakcaraka.databinarycompatible.annotation.PropertyMutability
 
 /**
  *
@@ -18,7 +19,7 @@ import com.cakcaraka.databinarycompatible.annotation.DefaultValue
  */
 @DataClass
 interface NoMandatoryOptionalNullableFinal {
-    @DefaultValue(stringValue = "Test", immutable = true)
+    @DefaultValue(stringValue = "Test", mutability = PropertyMutability.IMMUTABLE)
     val test: String?
 }
 
@@ -30,7 +31,7 @@ interface NoMandatoryOptionalNullableNonFinal {
 
 @DataClass
 interface NoMandatoryOptionalNonNullableFinal {
-    @DefaultValue(stringValue = "Test", immutable = true)
+    @DefaultValue(stringValue = "null", mutability = PropertyMutability.IMMUTABLE)
     val test: String
 }
 

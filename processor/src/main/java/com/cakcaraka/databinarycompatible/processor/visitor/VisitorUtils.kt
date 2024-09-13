@@ -1,7 +1,14 @@
 package com.cakcaraka.databinarycompatible.processor.visitor
 
+import com.cakcaraka.databinarycompatible.annotation.PropertyMutability
+import com.cakcaraka.databinarycompatible.processor.FieldName
 import com.cakcaraka.databinarycompatible.processor.PropertyConfig
 import com.cakcaraka.databinarycompatible.processor.visitor.BaseVisitor.ConstructingMechanism
+import com.cakcaraka.databinarycompatible.processor.visitor.ConstructorType.*
+import com.cakcaraka.databinarycompatible.processor.visitor.utils.ConstructorParamType
+import com.cakcaraka.databinarycompatible.processor.visitor.utils.ConstructorUtils
+import com.cakcaraka.databinarycompatible.processor.visitor.utils.ConstructorUtils.print
+import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.squareup.kotlinpoet.ANY
 import com.squareup.kotlinpoet.AnnotationSpec
@@ -23,6 +30,7 @@ object VisitorUtils {
      * Generate dsl/secondary constructor based on constructingMechanism
      */
     internal fun generateConstructingFunctions(
+        logger: KSPLogger,
         classNameObject: ClassName,
         propertyMap: Map<KSPropertyDeclaration, PropertyConfig>,
         constructingMechanism: ConstructingMechanism?
@@ -35,13 +43,12 @@ object VisitorUtils {
         val builderSpec = generateBuilderTypeSpec(classNameObject, propertyMap)
 
         // Additional Constructors
-        val (additionalConstructors, isPrimaryConstructorPrivate) = generateAdditionalConstructors(
-            classNameObject, propertyMap, constructingMechanism
+        val additionalConstructors = generateAdditionalConstructors(
+            logger, classNameObject, propertyMap, constructingMechanism
         )
 
         // Primary Constructor
-        val primaryConstructorBuilder =
-            generatePrimaryConstructor(isPrimaryConstructorPrivate, propertyMap)
+        val primaryConstructorBuilder = generatePrimaryConstructor(propertyMap)
 
         // Copy Method
         val copyMethodBuilder = generateCopyMethod(classNameObject, propertyMap)
@@ -62,58 +69,79 @@ object VisitorUtils {
     }
 
     private fun generateAdditionalConstructors(
+        logger: KSPLogger,
         classNameObject: ClassName,
         propertyMap: Map<KSPropertyDeclaration, PropertyConfig>,
         constructingMechanism: ConstructingMechanism
-    ): Pair<List<FunSpec.Builder>, Boolean> {
+    ): List<FunSpec.Builder> {
         val additionalConstructors = mutableListOf<FunSpec.Builder>()
-        var isPrimaryConstructorPrivate = true
 
-        //constructor that receives builder
-        val classConstructorWithBuilder = FunSpec.constructorBuilder()
-        classConstructorWithBuilder.addModifiers(KModifier.PRIVATE)
-        classConstructorWithBuilder.addParameter(
-            "builder", classNameObject.nestedClass("BuilderImpl")
-        )
-        classConstructorWithBuilder.callThisConstructor(
-            propertyMap.keys.joinToString(
-                prefix = "\n",
-                transform = { "${indent()}builder.$it" },
-                separator = ",\n",
-                postfix = "\n"
-            )
-        )
-
-        additionalConstructors.add(classConstructorWithBuilder)
 
         if (constructingMechanism == ConstructingMechanism.SecondaryConstructor) {
-            val mandatoryParams = propertyMap.filter {
-                it.value.mandatoryForConstructor
-            }.map { it.key.toString() }.joinToString(", ")
-            //constructor with default params
-            if (mandatoryParams.isNotEmpty()) {
-                //if all mandatory, just change primary constructor to public
-                val hasNonMandatoryParams = propertyMap.filter {
-                    it.value.mandatoryForConstructor.not()
-                }.isNotEmpty()
+            val constructorData = ConstructorUtils.generateConstructorPerVersion(
+                propertyMap.mapKeys { it.key.toString() }
+            )
 
-                if (hasNonMandatoryParams) {
-                    listOf(false, true).forEach { withInitializer ->
-                        //constructor that receives mandatory param and then builder
+            logger.warn("constructor for $classNameObject")
+            constructorData.print {
+                logger.warn(it.toString())
+            }
+
+            constructorData.forEachIndexed { index, constructorVersion ->
+
+                val mandatoryParams = constructorVersion.params
+
+                //constructor with default params
+                if (mandatoryParams.isNotEmpty()) {
+                    val hasNonMandatoryParams = propertyMap.any {
+                        it.value.optionalBuilderParam
+                    }
+
+                    if (hasNonMandatoryParams.not()) {
+                        //if all mandatory, primary constructor needs marker
+                        //generate secondary constructor with mandatory data
+                        //no need generate secondary constructor with mandatory data and builder
+                        listOf(NO_OPTIONAL_BUILDER)
+                    } else {
+                        //generate secondary constructor with mandatory data
+                        //generate secondary constructor with mandatory data and builder
+                        listOf(
+                            OPTIONAL_BUILDER_DEFAULT_VALUE,
+                            WITH_OPTIONAL_BUILDER
+                        )
+                    }.forEach { initializerFlag ->
                         val classConstructorWithParamBuilder = FunSpec.constructorBuilder()
                         classConstructorWithParamBuilder.addModifiers(KModifier.PUBLIC)
 
-                        val mandatoryProperty = propertyMap.filter {
-                            it.value.mandatoryForConstructor
+                        mandatoryParams.forEach {
+                            if (it.paramType.isOnParam) {
+                                classConstructorWithParamBuilder.addParameter(
+                                    it.fieldName, it.typeName
+                                )
+                            }
                         }
 
-                        mandatoryProperty.forEach {
-                            classConstructorWithParamBuilder.addParameter(
-                                it.key.toString(), it.value.typeName
+                        val deprecatedParams = mandatoryParams.filter {
+                            it.paramType is ConstructorParamType.ParamDeprecated
+                        }
+
+                        if (constructorData.size > 1) {
+                            classConstructorWithParamBuilder.addKdoc("Constructor for v${constructorVersion.version}\n")
+                        }
+
+                        if (deprecatedParams.isNotEmpty()) {
+                            classConstructorWithParamBuilder.addKdoc(
+                                """
+                                    |"Param(s) [${
+                                    deprecatedParams.joinToString(
+                                        ",",
+                                        transform = { it.fieldName })
+                                }] marked with [com.cakcaraka.databinarycompatible.annotation.PropertyMutability.IMMUTABLE_RECENTLY]
+                            |Value will be ignored and replaced with it's default value
+                                    """.trimMargin()
                             )
                         }
-
-                        if (withInitializer) {
+                        if (initializerFlag == WITH_OPTIONAL_BUILDER) {
                             classConstructorWithParamBuilder.addParameter(
                                 ParameterSpec.builder(
                                     "optionalPropertiesBuilder", LambdaTypeName.get(
@@ -124,12 +152,52 @@ object VisitorUtils {
                                 ).build()
                             )
                         }
+
+                        val lastConstructor = index == (constructorData.size - 1)
+
+                        // call BuilderImpl() or this()
+                        val prefixSuffix = if (lastConstructor) "${indent()}BuilderImpl(\n" else ""
+                        val prefix = "\n" + when (initializerFlag) {
+                            OPTIONAL_BUILDER_DEFAULT_VALUE -> ""
+                            NO_OPTIONAL_BUILDER -> "${indent()}\n$prefixSuffix"
+                            WITH_OPTIONAL_BUILDER -> "${indent()}$prefixSuffix"
+                        }
+
+                        val postfix = when (initializerFlag) {
+                            NO_OPTIONAL_BUILDER -> "\n${indent()})\n"
+                            OPTIONAL_BUILDER_DEFAULT_VALUE -> ",\n${indent(2)}{ }\n"
+                            WITH_OPTIONAL_BUILDER -> if (lastConstructor) {
+                                ",\n${indent()}).apply(optionalPropertiesBuilder)\n"
+                            } else {
+                                ",\n${indent(2)}optionalPropertiesBuilder\n"
+                            }
+                        }
+
                         classConstructorWithParamBuilder.callThisConstructor(
-                            mandatoryProperty.keys.joinToString(
-                                prefix = "\n${indent()}BuilderImpl(\n",
-                                transform = { "${indent(2)}$it" },
+                            mandatoryParams.filter {
+                                if (lastConstructor || initializerFlag != OPTIONAL_BUILDER_DEFAULT_VALUE) {
+                                    true
+                                } else {
+                                    it.paramType.isOnParam
+                                }
+                            }.map {
+                                when (val type = it.paramType) {
+                                    is ConstructorParamType.ParamDeprecated -> if (initializerFlag != OPTIONAL_BUILDER_DEFAULT_VALUE && lastConstructor) {
+                                        type.hardcodedValue
+                                    } else {
+                                        it.fieldName
+                                    }
+
+                                    is ConstructorParamType.DefaultValue -> type.defaultValue
+                                    is ConstructorParamType.ParamValue -> it.fieldName
+                                }
+                            }.joinToString(
+                                prefix = prefix,
+                                transform = {
+                                    "${indent(2)}${it}"
+                                },
                                 separator = ",\n",
-                                postfix = "\n${indent()})" + if (withInitializer) ".apply(optionalPropertiesBuilder)\n" else "\n"
+                                postfix = postfix
                             )
                         )
                         additionalConstructors.add(
@@ -137,13 +205,118 @@ object VisitorUtils {
                         )
                     }
                 } else {
-                    isPrimaryConstructorPrivate = false
+                    //have no mandatory param
+                    //generate empty constructor
+                    //generate constructor with optionalBuilder
+                    val classConstructorWithParamBuilder = FunSpec.constructorBuilder()
+                    classConstructorWithParamBuilder.addModifiers(KModifier.PUBLIC)
+                    classConstructorWithParamBuilder.addParameter(
+                        ParameterSpec.builder(
+                            "optionalPropertiesBuilder", LambdaTypeName.get(
+                                classNameObject.nestedClass("OptionalPropertiesBuilder"),
+                                emptyList(),
+                                ClassName("kotlin", "Unit")
+                            )
+                        ).build()
+                    )
+
+                    classConstructorWithParamBuilder.callThisConstructor(
+                        "BuilderImpl().apply(optionalPropertiesBuilder)\n"
+                    )
+                    additionalConstructors.add(
+                        classConstructorWithParamBuilder
+                    )
                 }
-            } else {
-                isPrimaryConstructorPrivate = false
             }
         }
-        return Pair(additionalConstructors, isPrimaryConstructorPrivate)
+
+        val mandatoryImmutableKeepSetterData: MutableMap<FieldName, String> = mutableMapOf()
+        val immutableDefaultValueData: MutableMap<FieldName, String> = mutableMapOf()
+        propertyMap.forEach {
+            val fieldName = FieldName(it.key.toString())
+            val defaultValue = it.value.defaultValueConfig
+            when (defaultValue?.mutability) {
+                PropertyMutability.IMMUTABLE -> {
+                    immutableDefaultValueData[fieldName] = defaultValue.defaultValue.orEmpty()
+                }
+
+                PropertyMutability.IMMUTABLE_RECENTLY -> {
+                    mandatoryImmutableKeepSetterData[fieldName] =
+                        defaultValue.defaultValue.orEmpty()
+                }
+
+                PropertyMutability.MUTABLE, null -> {
+
+                }
+            }
+        }
+
+        //constructor that receives builder
+        val classConstructorWithBuilder = FunSpec.constructorBuilder()
+        classConstructorWithBuilder.addModifiers(KModifier.PRIVATE)
+        classConstructorWithBuilder.addParameter(
+            "builder", classNameObject.nestedClass("BuilderImpl")
+        )
+
+        val kdocs = mutableListOf<String>()
+        if (mandatoryImmutableKeepSetterData.isNotEmpty()) {
+            kdocs.add(
+                "Builder's param(s) [${
+                    (mandatoryImmutableKeepSetterData.keys).joinToString(
+                        ",",
+                        transform = { it.fieldName })
+                }] "
+            )
+            kdocs.add("marked with [com.cakcaraka.databinarycompatible.annotation.PropertyMutability.IMMUTABLE_RECENTLY]\n")
+            kdocs.add("Value will be ignored and replaced with it's default value\n")
+        }
+        if (immutableDefaultValueData.isNotEmpty()) {
+            if (kdocs.isNotEmpty()) {
+                kdocs.add("\n")
+            }
+            kdocs.add(
+                "Builder's param(s) [${
+                    immutableDefaultValueData.keys.joinToString(
+                        ",",
+                        transform = { it.fieldName })
+                }] "
+            )
+            kdocs.add("marked with [com.cakcaraka.databinarycompatible.annotation.PropertyMutability.IMMUTABLE]\n")
+            kdocs.add("Will use default value\n")
+        }
+        classConstructorWithBuilder.addKdoc(
+            CodeBlock.builder().apply
+            {
+                kdocs.forEach {
+                    add(it)
+                }
+            }.build()
+        )
+        classConstructorWithBuilder.callThisConstructor(
+            propertyMap.keys.map
+            {
+                val fieldName = FieldName(it.toString())
+                if (mandatoryImmutableKeepSetterData[fieldName] != null) {
+                    mandatoryImmutableKeepSetterData[fieldName]
+                } else if (immutableDefaultValueData[fieldName] != null) {
+                    immutableDefaultValueData[fieldName]
+                } else {
+                    "builder.$it"
+                }
+            }.plus(
+                "null"
+            ).joinToString(
+                prefix = "\n",
+                transform =
+                { "${indent()}$it" },
+                separator = ",\n",
+                postfix = "\n"
+            )
+        )
+
+        additionalConstructors.add(0, classConstructorWithBuilder)
+
+        return additionalConstructors
     }
 
     private fun generateBuilderTypeSpec(
@@ -160,8 +333,8 @@ object VisitorUtils {
             withImplementation = false,
             withSetterMethodImplementation = false,
             withKDocs = { false },
-            propertyMap = propertyMap.filterNot {
-                it.value.mandatoryForConstructor
+            propertyMap = propertyMap.filter {
+                it.value.optionalBuilderParam
             },
             propertyAnnotations = {
                 listOf(KModifier.ABSTRACT)
@@ -178,9 +351,11 @@ object VisitorUtils {
             withImplementation = false,
             withSetterMethodImplementation = false,
             withKDocs = { true },
-            propertyMap = propertyMap,
+            propertyMap = propertyMap.filterNot {
+                it.value.mutability == PropertyMutability.IMMUTABLE
+            },
             propertyAnnotations = {
-                if (it.mandatoryForConstructor) {
+                if (it.optionalBuilderParam.not()) {
                     listOf(KModifier.ABSTRACT)
                 } else {
                     listOf(KModifier.OVERRIDE, KModifier.ABSTRACT)
@@ -199,7 +374,9 @@ object VisitorUtils {
             withImplementation = true,
             withSetterMethodImplementation = true,
             withKDocs = { false },
-            propertyMap = propertyMap,
+            propertyMap = propertyMap.filterNot {
+                it.value.mutability == PropertyMutability.IMMUTABLE
+            },
             propertyAnnotations = {
                 listOf(KModifier.OVERRIDE)
             }
@@ -207,7 +384,7 @@ object VisitorUtils {
 
 
         val hasNoMandatoryParam = propertyMap.none {
-            it.value.mandatoryForConstructor
+            it.value.mandatoryForBuilderConstructor
         }
 
         val classConstructorWithParamBuilder = if (hasNoMandatoryParam) {
@@ -247,7 +424,7 @@ object VisitorUtils {
             val propertyName = property.key.toString()
             // when no default value provided but property is non nullable -
             // it should be moved to Builder mandatory ctor arguments
-            if (property.value.mandatoryForConstructor) {
+            if (property.value.mandatoryForBuilderConstructor) {
                 constructorBuilder.addParameter(
                     propertyName,
                     property.value.typeName,
@@ -287,20 +464,19 @@ object VisitorUtils {
                                     property.value.defaultValue ?: "null"
                                 ).build()
                             )
-                        } else if (property.value.isMutable) {
+                        } else if (property.value.isAnnotatedMutable) {
                             addAnnotation(
                                 AnnotationSpec.builder(JvmSynthetic::class)
                                     .useSiteTarget(AnnotationSpec.UseSiteTarget.SET).build()
                             )
                         }
                         addModifiers(propertyAnnotations(property.value))
-                        mutable(property.value.isMutable)
-
+                        mutable(property.value.isAnnotatedMutable)
                     }.build()
                 )
             }
 
-            if (property.value.isMutable) {
+            if (property.value.isAnnotatedMutable) {
                 builderBuilder
                     .addFunction(
                         FunSpec
@@ -312,8 +488,20 @@ object VisitorUtils {
                             .addParameter(propertyName, property.value.typeName)
                             .returns(builderClassNameObject)
                             .apply {
+                                if (property.value.isMutableEmptySetter) {
+                                    addAnnotation(
+                                        AnnotationSpec.builder(Deprecated::class)
+                                            .addMember(
+                                                "%S",
+                                                "This method is deprecated and won't do anything, kept for backwards compatibility"
+                                            )
+                                            .build()
+                                    )
+                                }
                                 if (withSetterMethodImplementation) {
-                                    addStatement("this.$propertyName = $propertyName")
+                                    if (property.value.isMutableEmptySetter.not()) {
+                                        addStatement("this.$propertyName = $propertyName")
+                                    }
                                     addStatement("return this")
                                 }
                                 addModifiers(propertyAnnotations(property.value))
@@ -337,7 +525,7 @@ object VisitorUtils {
         }
 
         val builderConstructorNeeded = propertyMap.any {
-            it.value.mandatoryForConstructor
+            it.value.mandatoryForBuilderConstructor
         }
         if (builderConstructorNeeded && withImplementation) {
             builderBuilder.primaryConstructor(constructorBuilder.build())
@@ -368,23 +556,56 @@ object VisitorUtils {
     }
 
     private fun generatePrimaryConstructor(
-        isPrimaryConstructorPrivate: Boolean,
         propertyMap: Map<KSPropertyDeclaration, PropertyConfig>
     ): FunSpec.Builder {
         // Constructor
         val primaryConstructorBuilder = FunSpec.constructorBuilder()
-        if (isPrimaryConstructorPrivate) {
-            primaryConstructorBuilder.addModifiers(KModifier.PRIVATE)
-        }
+        primaryConstructorBuilder.addModifiers(KModifier.PRIVATE)
         for (entry in propertyMap) {
             val modifiers: MutableSet<KModifier> = mutableSetOf()
             if (entry.value.hasOverridesModifier) {
                 modifiers.add(KModifier.OVERRIDE)
             }
             primaryConstructorBuilder.addParameter(
-                entry.key.toString(), entry.value.typeName, modifiers
+                ParameterSpec.builder(
+                    entry.key.toString(), entry.value.typeName, modifiers
+                ).apply {
+                    addKdoc(entry.value.kDoc.apply {
+                        trimEnd('.')
+                    })
+                    when (entry.value.mutability) {
+                        PropertyMutability.IMMUTABLE -> addKdoc("\nImmutable, hardcoded to ${entry.value.defaultValue}")
+                        PropertyMutability.IMMUTABLE_RECENTLY -> {
+                            addKdoc("\nImmutable (previously mutable), hardcoded to ${entry.value.defaultValue}")
+                            addKdoc("\nSetter and constructor kept for backwards compatibility, but won't have any effect")
+                        }
+
+                        PropertyMutability.MUTABLE -> if (entry.value.defaultValueConfig != null) {
+                            val newRequiredProperty =
+                                entry.value.defaultValueConfig!!.newRequiredPropertyConfig
+                            if (newRequiredProperty != null) {
+                                addKdoc("\nRequired param since v${newRequiredProperty.sinceVersion} (on previous constructor: default value ${entry.value.defaultValue})")
+                            } else {
+                                addKdoc("\nOptional param (default value ${entry.value.defaultValue})")
+                            }
+                        } else {
+                            addKdoc("\nRequired param")
+                        }
+                    }
+
+                }.build()
             )
         }
+
+        primaryConstructorBuilder.addParameter(
+            ParameterSpec.builder(
+                "dbcMarker", ClassName("kotlin", "Unit").copy(
+                    nullable = true
+                )
+            ).apply {
+                addKdoc("Hidden marker to ensure this constructor would only be called by the other constructor that has builder as param")
+            }.build()
+        )
 
         return primaryConstructorBuilder
     }
@@ -394,7 +615,7 @@ object VisitorUtils {
         propertyMap: Map<KSPropertyDeclaration, PropertyConfig>
     ): FunSpec.Builder {
         val mandatoryParams = propertyMap.filter {
-            it.value.mandatoryForConstructor
+            it.value.mandatoryForBuilderConstructor
         }.map { it.key.toString() }.joinToString(", ")
         return FunSpec.builder("copy")
             .addKdoc(
@@ -413,7 +634,7 @@ object VisitorUtils {
             )
             .addStatement(
                 (propertyMap.filter {
-                    it.value.isMutable
+                    it.value.mandatoryForBuilderConstructor.not() && it.value.isAnnotatedMutable
                 }.keys.map { str ->
                     "${indent()}.set${
                         str.toString().replaceFirstChar {
@@ -460,9 +681,11 @@ object VisitorUtils {
             .addStatement("if (this === other) return true")
             .addStatement("if (javaClass != other?.javaClass) return false")
             .addStatement("other as ${classNameObject.simpleName}").apply {
-                propertyMap.keys.map {
+                propertyMap.filterNot { property ->
+                    property.value.excludesFromEqualsAndGetter
+                }.map {
                     addStatement(
-                        "if($it·!=·other.$it) return false"
+                        "if(${it.key}·!=·other.${it.key}) return false"
                     )
                 }
             }.addStatement("return true").returns(Boolean::class)
@@ -476,7 +699,11 @@ object VisitorUtils {
                             Overloaded hashCode function based on all class properties.
                             """.trimIndent()
         ).addModifiers(KModifier.OVERRIDE).addStatement(
-            propertyMap.keys.ifEmpty {
+            propertyMap.filterNot { property ->
+                property.value.excludesFromEqualsAndGetter
+            }.map {
+                it.key
+            }.ifEmpty {
                 listOf("javaClass")
             }.joinToString(
                 prefix = "return Objects.hash(", separator = ", ", postfix = ")"
@@ -489,7 +716,7 @@ object VisitorUtils {
         propertyMap: Map<KSPropertyDeclaration, PropertyConfig>
     ): FunSpec.Builder {
         val hasMutableParams = propertyMap.any {
-            it.value.isMutable
+            it.value.isAnnotatedMutable
         }
 
         val mandatoryParams = propertyMap.filter {
@@ -555,6 +782,11 @@ internal fun indent(repeat: Int = 1): String {
     return " ".repeat(repeat * INDENTATION_SIZE)
 }
 
+private enum class ConstructorType {
+    NO_OPTIONAL_BUILDER,
+    OPTIONAL_BUILDER_DEFAULT_VALUE,
+    WITH_OPTIONAL_BUILDER,
+}
 
 internal class ConstructingFunctions(
     val initializer: FunSpec.Builder?,

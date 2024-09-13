@@ -2,6 +2,8 @@ package com.cakcaraka.databinarycompatible.processor.visitor
 
 import com.cakcaraka.databinarycompatible.annotation.SealedParentDataClass
 import com.cakcaraka.databinarycompatible.processor.DataBinaryCompatibleProcessor.Config
+import com.cakcaraka.databinarycompatible.processor.DefaultValueConfig
+import com.cakcaraka.databinarycompatible.processor.FieldName
 import com.cakcaraka.databinarycompatible.processor.writer.FileGeneratorSpec
 import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.symbol.KSAnnotated
@@ -14,7 +16,7 @@ import kotlin.reflect.KClass
 
 internal class SealedParentVisitor(
     private val logger: KSPLogger,
-    defaultValuesMap: Map<KSClassDeclaration, MutableMap<String, Pair<String?, Boolean>>>,
+    defaultValuesMap: Map<KSClassDeclaration, MutableMap<FieldName, DefaultValueConfig>>,
     private val nestedClassNameMapping: MutableMap<ClassName, ClassName>,
     private val fileGeneratorSpecMap: MutableMap<KSAnnotated, FileGeneratorSpec>,
     config: Config
