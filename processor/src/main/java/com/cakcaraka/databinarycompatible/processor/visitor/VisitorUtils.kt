@@ -116,8 +116,8 @@ object VisitorUtils {
                         if (withInitializer) {
                             classConstructorWithParamBuilder.addParameter(
                                 ParameterSpec.builder(
-                                    "nonMandatoryInitializer", LambdaTypeName.get(
-                                        classNameObject.nestedClass("NonMandatoryBuilder"),
+                                    "optionalPropertiesBuilder", LambdaTypeName.get(
+                                        classNameObject.nestedClass("OptionalPropertiesBuilder"),
                                         emptyList(),
                                         ClassName("kotlin", "Unit")
                                     )
@@ -129,7 +129,7 @@ object VisitorUtils {
                                 prefix = "\n${indent()}BuilderImpl(\n",
                                 transform = { "${indent(2)}$it" },
                                 separator = ",\n",
-                                postfix = "\n${indent()})" + if (withInitializer) ".apply(nonMandatoryInitializer)\n" else "\n"
+                                postfix = "\n${indent()})" + if (withInitializer) ".apply(optionalPropertiesBuilder)\n" else "\n"
                             )
                         )
                         additionalConstructors.add(
@@ -151,7 +151,7 @@ object VisitorUtils {
         propertyMap: Map<KSPropertyDeclaration, PropertyConfig>
     ): Pair<List<TypeSpec.Builder>, FunSpec.Builder?> {
         // Builder pattern
-        val optionalBuilderClassName = classNameObject.nestedClass("NonMandatoryBuilder")
+        val optionalBuilderClassName = classNameObject.nestedClass("OptionalPropertiesBuilder")
         val optionalBuilderBuilder = TypeSpec.interfaceBuilder(optionalBuilderClassName.simpleName)
         injectBuilderMethod(
             optionalBuilderBuilder,
@@ -159,32 +159,17 @@ object VisitorUtils {
             optionalBuilderClassName,
             withImplementation = false,
             withSetterMethodImplementation = false,
-            setterMethodAnnotations = listOf(KModifier.ABSTRACT),
-            withKDocs = true,
+            withKDocs = { false },
             propertyMap = propertyMap.filterNot {
                 it.value.mandatoryForConstructor
-            }
-        )
-
-        val mandatoryBuilderClassName = classNameObject.nestedClass("MandatoryBuilder")
-        val mandatoryBuilderBuilder =
-            TypeSpec.interfaceBuilder(mandatoryBuilderClassName.simpleName)
-        injectBuilderMethod(
-            mandatoryBuilderBuilder,
-            classNameObject,
-            mandatoryBuilderClassName,
-            withImplementation = false,
-            withSetterMethodImplementation = false,
-            setterMethodAnnotations = listOf(KModifier.ABSTRACT),
-            withKDocs = true,
-            propertyMap = propertyMap.filter {
-                it.value.mandatoryForConstructor
+            },
+            propertyAnnotations = {
+                listOf(KModifier.ABSTRACT)
             }
         )
 
         val builderClassName = classNameObject.nestedClass("Builder")
         val builderBuilder = TypeSpec.interfaceBuilder(builderClassName.simpleName)
-        builderBuilder.addSuperinterface(mandatoryBuilderClassName)
         builderBuilder.addSuperinterface(optionalBuilderClassName)
         injectBuilderMethod(
             builderBuilder,
@@ -192,9 +177,15 @@ object VisitorUtils {
             builderClassName,
             withImplementation = false,
             withSetterMethodImplementation = false,
-            setterMethodAnnotations = listOf(KModifier.OVERRIDE, KModifier.ABSTRACT),
-            withKDocs = false,
-            propertyMap = propertyMap
+            withKDocs = { true },
+            propertyMap = propertyMap,
+            propertyAnnotations = {
+                if (it.mandatoryForConstructor) {
+                    listOf(KModifier.ABSTRACT)
+                } else {
+                    listOf(KModifier.OVERRIDE, KModifier.ABSTRACT)
+                }
+            }
         )
 
         val builderClassImplName = classNameObject.nestedClass("BuilderImpl")
@@ -207,9 +198,11 @@ object VisitorUtils {
             builderClassImplName,
             withImplementation = true,
             withSetterMethodImplementation = true,
-            setterMethodAnnotations = listOf(KModifier.OVERRIDE),
-            withKDocs = false,
-            propertyMap = propertyMap
+            withKDocs = { false },
+            propertyMap = propertyMap,
+            propertyAnnotations = {
+                listOf(KModifier.OVERRIDE)
+            }
         )
 
 
@@ -229,7 +222,6 @@ object VisitorUtils {
 
         return Pair(
             listOf(
-                mandatoryBuilderBuilder,
                 optionalBuilderBuilder,
                 builderBuilder,
                 builderBuilderImpl
@@ -245,9 +237,9 @@ object VisitorUtils {
         builderClassNameObject: ClassName,
         withImplementation: Boolean,
         withSetterMethodImplementation: Boolean,
-        setterMethodAnnotations: List<KModifier>,
-        withKDocs: Boolean,
+        withKDocs: (PropertyConfig) -> Boolean,
         propertyMap: Map<KSPropertyDeclaration, PropertyConfig>,
+        propertyAnnotations: (PropertyConfig) -> List<KModifier>,
     ) {
         val constructorBuilder = FunSpec.constructorBuilder()
         val className = builderClassNameObject.simpleName
@@ -255,7 +247,6 @@ object VisitorUtils {
             val propertyName = property.key.toString()
             // when no default value provided but property is non nullable -
             // it should be moved to Builder mandatory ctor arguments
-
             if (property.value.mandatoryForConstructor) {
                 constructorBuilder.addParameter(
                     propertyName,
@@ -272,7 +263,7 @@ object VisitorUtils {
                                         .useSiteTarget(AnnotationSpec.UseSiteTarget.SET).build()
                                 )
                             }
-                            addModifiers(setterMethodAnnotations)
+                            addModifiers(propertyAnnotations(property.value))
                         }
                         .mutable(true)
                         .build()
@@ -283,7 +274,7 @@ object VisitorUtils {
                         propertyName,
                         property.value.typeName
                     ).apply {
-                        if (withKDocs) {
+                        if (withKDocs(property.value)) {
                             addKdoc(
                                 """
                                     |${property.value.kDoc}
@@ -302,7 +293,7 @@ object VisitorUtils {
                                     .useSiteTarget(AnnotationSpec.UseSiteTarget.SET).build()
                             )
                         }
-                        addModifiers(setterMethodAnnotations)
+                        addModifiers(propertyAnnotations(property.value))
                         mutable(property.value.isMutable)
 
                     }.build()
@@ -325,9 +316,9 @@ object VisitorUtils {
                                     addStatement("this.$propertyName = $propertyName")
                                     addStatement("return this")
                                 }
-                                addModifiers(setterMethodAnnotations)
+                                addModifiers(propertyAnnotations(property.value))
 
-                                if (withKDocs) {
+                                if (withKDocs(property.value)) {
                                     addKdoc("""
                                         |Setter for $propertyName: ${
                                         property.value.kDoc.trimEnd('.')
