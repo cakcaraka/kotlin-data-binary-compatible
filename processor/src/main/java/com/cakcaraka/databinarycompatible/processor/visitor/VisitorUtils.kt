@@ -73,7 +73,7 @@ object VisitorUtils {
         val classConstructorWithBuilder = FunSpec.constructorBuilder()
         classConstructorWithBuilder.addModifiers(KModifier.PRIVATE)
         classConstructorWithBuilder.addParameter(
-            "builder", classNameObject.nestedClass("Builder")
+            "builder", classNameObject.nestedClass("BuilderImpl")
         )
         classConstructorWithBuilder.callThisConstructor(
             propertyMap.keys.joinToString(
@@ -116,8 +116,8 @@ object VisitorUtils {
                         if (withInitializer) {
                             classConstructorWithParamBuilder.addParameter(
                                 ParameterSpec.builder(
-                                    "initializer", LambdaTypeName.get(
-                                        classNameObject.nestedClass("Builder"),
+                                    "nonMandatoryInitializer", LambdaTypeName.get(
+                                        classNameObject.nestedClass("NonMandatoryBuilder"),
                                         emptyList(),
                                         ClassName("kotlin", "Unit")
                                     )
@@ -126,10 +126,10 @@ object VisitorUtils {
                         }
                         classConstructorWithParamBuilder.callThisConstructor(
                             mandatoryProperty.keys.joinToString(
-                                prefix = "\n${indent()}Builder(\n",
+                                prefix = "\n${indent()}BuilderImpl(\n",
                                 transform = { "${indent(2)}$it" },
                                 separator = ",\n",
-                                postfix = "\n${indent()})" + if (withInitializer) ".apply(initializer)\n" else "\n"
+                                postfix = "\n${indent()})" + if (withInitializer) ".apply(nonMandatoryInitializer)\n" else "\n"
                             )
                         )
                         additionalConstructors.add(
@@ -149,120 +149,231 @@ object VisitorUtils {
     private fun generateBuilderTypeSpec(
         classNameObject: ClassName,
         propertyMap: Map<KSPropertyDeclaration, PropertyConfig>
-    ): Pair<TypeSpec.Builder, FunSpec.Builder?> {
+    ): Pair<List<TypeSpec.Builder>, FunSpec.Builder?> {
         // Builder pattern
-        val builderBuilder = TypeSpec.classBuilder("Builder")
-        var builderConstructorNeeded = false
+        val optionalBuilderClassName = classNameObject.nestedClass("NonMandatoryBuilder")
+        val optionalBuilderBuilder = TypeSpec.interfaceBuilder(optionalBuilderClassName.simpleName)
+        injectBuilderMethod(
+            optionalBuilderBuilder,
+            classNameObject,
+            optionalBuilderClassName,
+            withImplementation = false,
+            withSetterMethodImplementation = false,
+            setterMethodAnnotations = listOf(KModifier.ABSTRACT),
+            withKDocs = true,
+            propertyMap = propertyMap.filterNot {
+                it.value.mandatoryForConstructor
+            }
+        )
+
+        val mandatoryBuilderClassName = classNameObject.nestedClass("MandatoryBuilder")
+        val mandatoryBuilderBuilder =
+            TypeSpec.interfaceBuilder(mandatoryBuilderClassName.simpleName)
+        injectBuilderMethod(
+            mandatoryBuilderBuilder,
+            classNameObject,
+            mandatoryBuilderClassName,
+            withImplementation = false,
+            withSetterMethodImplementation = false,
+            setterMethodAnnotations = listOf(KModifier.ABSTRACT),
+            withKDocs = true,
+            propertyMap = propertyMap.filter {
+                it.value.mandatoryForConstructor
+            }
+        )
+
+        val builderClassName = classNameObject.nestedClass("Builder")
+        val builderBuilder = TypeSpec.interfaceBuilder(builderClassName.simpleName)
+        builderBuilder.addSuperinterface(mandatoryBuilderClassName)
+        builderBuilder.addSuperinterface(optionalBuilderClassName)
+        injectBuilderMethod(
+            builderBuilder,
+            classNameObject,
+            builderClassName,
+            withImplementation = false,
+            withSetterMethodImplementation = false,
+            setterMethodAnnotations = listOf(KModifier.OVERRIDE, KModifier.ABSTRACT),
+            withKDocs = false,
+            propertyMap = propertyMap
+        )
+
+        val builderClassImplName = classNameObject.nestedClass("BuilderImpl")
+        val builderBuilderImpl = TypeSpec.classBuilder(builderClassImplName.simpleName)
+        builderBuilderImpl.addSuperinterface(builderClassName)
+        builderBuilderImpl.addModifiers(KModifier.PRIVATE)
+        injectBuilderMethod(
+            builderBuilderImpl,
+            classNameObject,
+            builderClassImplName,
+            withImplementation = true,
+            withSetterMethodImplementation = true,
+            setterMethodAnnotations = listOf(KModifier.OVERRIDE),
+            withKDocs = false,
+            propertyMap = propertyMap
+        )
+
+
+        val hasNoMandatoryParam = propertyMap.none {
+            it.value.mandatoryForConstructor
+        }
+
+        val classConstructorWithParamBuilder = if (hasNoMandatoryParam) {
+            val paramBuilder = FunSpec.constructorBuilder()
+            paramBuilder.addModifiers(KModifier.PUBLIC)
+            paramBuilder.callThisConstructor(
+                "BuilderImpl()"
+            )
+        } else {
+            null
+        }
+
+        return Pair(
+            listOf(
+                mandatoryBuilderBuilder,
+                optionalBuilderBuilder,
+                builderBuilder,
+                builderBuilderImpl
+            ),
+            classConstructorWithParamBuilder
+        )
+    }
+
+
+    private fun injectBuilderMethod(
+        builderBuilder: TypeSpec.Builder,
+        classNameObject: ClassName,
+        builderClassNameObject: ClassName,
+        withImplementation: Boolean,
+        withSetterMethodImplementation: Boolean,
+        setterMethodAnnotations: List<KModifier>,
+        withKDocs: Boolean,
+        propertyMap: Map<KSPropertyDeclaration, PropertyConfig>,
+    ) {
         val constructorBuilder = FunSpec.constructorBuilder()
-        val className = classNameObject.simpleName
+        val className = builderClassNameObject.simpleName
         for (property in propertyMap) {
             val propertyName = property.key.toString()
-
             // when no default value provided but property is non nullable -
             // it should be moved to Builder mandatory ctor arguments
+
             if (property.value.mandatoryForConstructor) {
-                builderConstructorNeeded = true
                 constructorBuilder.addParameter(
                     propertyName,
                     property.value.typeName,
                 )
                 builderBuilder.addProperty(
                     PropertySpec.builder(propertyName, property.value.typeName)
-                        .initializer(propertyName).addKdoc(
-                            """
-                            |${property.value.kDoc}
-                            """.trimMargin()
-                        ).addAnnotation(
-                            AnnotationSpec.builder(JvmSynthetic::class)
-                                .useSiteTarget(AnnotationSpec.UseSiteTarget.SET).build()
-                        ).mutable(true).build()
+                        .apply {
+                            if (withImplementation) {
+                                initializer(propertyName)
+                            } else {
+                                addAnnotation(
+                                    AnnotationSpec.builder(JvmSynthetic::class)
+                                        .useSiteTarget(AnnotationSpec.UseSiteTarget.SET).build()
+                                )
+                            }
+                            addModifiers(setterMethodAnnotations)
+                        }
+                        .mutable(true)
+                        .build()
                 )
             } else {
                 builderBuilder.addProperty(
                     PropertySpec.builder(
                         propertyName,
                         property.value.typeName
-                    ).initializer(
-                        CodeBlock.builder().add(
-                            property.value.defaultValue ?: "null"
-                        ).build()
-                    ).addKdoc(
-                        """
-                            |${property.value.kDoc}
-                            """.trimMargin()
                     ).apply {
-                        if (property.value.isMutable) {
+                        if (withKDocs) {
+                            addKdoc(
+                                """
+                                    |${property.value.kDoc}
+                                    """.trimMargin()
+                            )
+                        }
+                        if (withImplementation) {
+                            initializer(
+                                CodeBlock.builder().add(
+                                    property.value.defaultValue ?: "null"
+                                ).build()
+                            )
+                        } else if (property.value.isMutable) {
                             addAnnotation(
                                 AnnotationSpec.builder(JvmSynthetic::class)
                                     .useSiteTarget(AnnotationSpec.UseSiteTarget.SET).build()
                             )
                         }
-                    }.apply {
-                        if (property.value.isMutable) {
-                            mutable(true)
-                        } else {
-                            mutable(false)
-                            addModifiers(KModifier.INTERNAL)
-                        }
+                        addModifiers(setterMethodAnnotations)
+                        mutable(property.value.isMutable)
+
                     }.build()
                 )
             }
 
             if (property.value.isMutable) {
-                builderBuilder.addFunction(FunSpec.builder("set${
-                    propertyName.replaceFirstChar {
-                        if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
-                    }
-                }").addKdoc("""
-                            |Setter for $propertyName: ${
-                    property.value.kDoc.trimEnd('.')
-                        .replaceFirstChar { it.lowercase(Locale.getDefault()) }
-                }.
-                            |
-                            |@param $propertyName
-                            |@return Builder
-                            """.trimMargin()).addParameter(propertyName, property.value.typeName)
-                    .addStatement("this.$propertyName = $propertyName")
-                    .addStatement("return this").returns(classNameObject.nestedClass("Builder"))
-                    .build())
+                builderBuilder
+                    .addFunction(
+                        FunSpec
+                            .builder("set${
+                                propertyName.replaceFirstChar {
+                                    if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
+                                }
+                            }")
+                            .addParameter(propertyName, property.value.typeName)
+                            .returns(builderClassNameObject)
+                            .apply {
+                                if (withSetterMethodImplementation) {
+                                    addStatement("this.$propertyName = $propertyName")
+                                    addStatement("return this")
+                                }
+                                addModifiers(setterMethodAnnotations)
+
+                                if (withKDocs) {
+                                    addKdoc("""
+                                        |Setter for $propertyName: ${
+                                        property.value.kDoc.trimEnd('.')
+                                            .replaceFirstChar { it.lowercase(Locale.getDefault()) }
+                                    }.
+                                        |
+                                        |@param $propertyName
+                                        |@return Builder
+                                        """.trimMargin()
+                                    )
+                                }
+                            }
+                            .build()
+                    )
             }
         }
-        if (builderConstructorNeeded) {
+
+        val builderConstructorNeeded = propertyMap.any {
+            it.value.mandatoryForConstructor
+        }
+        if (builderConstructorNeeded && withImplementation) {
             builderBuilder.primaryConstructor(constructorBuilder.build())
         }
 
-        val buildFunction = FunSpec.builder("build")
-        buildFunction.addKdoc(
-            """
+        if (withImplementation) {
+            val buildFunction = FunSpec.builder("build")
+            buildFunction.addKdoc(
+                """
                 |Returns a [$className] reference to the object being constructed by the builder.
                 |
                 |@return $className
                 """.trimMargin()
-        )
-        buildFunction.addStatement(
-            "return $className(this)"
-        ).returns(classNameObject)
-
-        builderBuilder.addKdoc(
-            """
+            ).returns(classNameObject)
+            //buildFunction.addModifiers(KModifier.OVERRIDE)
+            buildFunction.addStatement(
+                "return ${classNameObject.simpleName}(this)"
+            )
+            builderBuilder.addKdoc(
+                """
                 |Composes and builds a [$className] object.
                 |
                 |This is a concrete implementation of the builder design pattern.
                 """.trimMargin()
-        )
-        builderBuilder.addFunction(buildFunction.build())
-
-        val classConstructorWithParamBuilder = if (builderConstructorNeeded.not()) {
-            val paramBuilder = FunSpec.constructorBuilder()
-            paramBuilder.addModifiers(KModifier.PUBLIC)
-            paramBuilder.callThisConstructor(
-                "Builder()"
             )
-        } else {
-            null
+            builderBuilder.addFunction(buildFunction.build())
         }
-
-        return Pair(builderBuilder, classConstructorWithParamBuilder)
     }
 
     private fun generatePrimaryConstructor(
@@ -322,7 +433,7 @@ object VisitorUtils {
                 } + listOf(
                     "${indent()}.apply(builder)", "${indent()}.build()"
                 )).joinToString(
-                    prefix = "return Builder($mandatoryParams)\n", separator = "\n"
+                    prefix = "return BuilderImpl($mandatoryParams)\n", separator = "\n"
                 )
             ).returns(ClassName("", classNameObject.simpleName))
     }
@@ -457,7 +568,7 @@ internal fun indent(repeat: Int = 1): String {
 internal class ConstructingFunctions(
     val initializer: FunSpec.Builder?,
     val copyMethod: FunSpec.Builder,
-    val builderSpec: Pair<TypeSpec.Builder, FunSpec.Builder?>,
+    val builderSpec: Pair<List<TypeSpec.Builder>, FunSpec.Builder?>,
     val primaryConstructor: FunSpec.Builder,
     val additionalConstructors: List<FunSpec.Builder>
 )

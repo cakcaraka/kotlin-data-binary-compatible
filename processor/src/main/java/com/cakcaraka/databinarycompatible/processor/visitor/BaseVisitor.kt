@@ -42,10 +42,6 @@ internal abstract class BaseVisitor(
         return constructingMechanism != null
     }
 
-    private fun isGenerateCopyMethod(): Boolean {
-        return constructingMechanism != null
-    }
-
     abstract fun writeFileSpec(
         classDeclaration: KSClassDeclaration, fileGeneratorSpec: FileGeneratorSpec
     )
@@ -218,7 +214,9 @@ internal abstract class BaseVisitor(
             propertyMap,
             constructingMechanism
         )?.also {
-            classBuilder.addType(it.builderSpec.first.build())
+            it.builderSpec.first.forEach { builder ->
+                classBuilder.addType(builder.build())
+            }
             it.builderSpec.second?.also { builderFunc ->
                 classBuilder.addFunction(builderFunc.build())
             }

@@ -23,3 +23,11 @@ interface MandatoryNullableNoOptional {
 interface MandatoryNonNullableNoOptional {
     val test: String
 }
+
+@DataClass
+interface MandatoryNonNullableNoOptional2 {
+    val test: String
+
+    @DefaultValue(stringValue = "test")
+    val test2: String
+}
