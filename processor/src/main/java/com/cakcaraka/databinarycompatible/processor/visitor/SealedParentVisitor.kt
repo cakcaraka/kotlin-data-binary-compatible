@@ -22,17 +22,11 @@ internal class SealedParentVisitor(
 
     override val annotationClass: KClass<*> = SealedParentDataClass::class
 
-    override val isAddOverrideModifierToProperties: Boolean = false
-
     override val additionalClassModifier: KModifier? = KModifier.SEALED
 
     override val isAddSelfAsSuperInterface: Boolean = false
 
-    override val initializeProperty: Boolean = false
-
-    override val isGenerateCopyMethod: Boolean = false
-
-    override val constructingMechanism: ConstructingMechanism = ConstructingMechanism.NONE
+    override val constructingMechanism: ConstructingMechanism? = null
 
     override fun writeFileSpec(
         classDeclaration: KSClassDeclaration,

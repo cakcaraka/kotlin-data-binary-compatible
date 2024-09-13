@@ -23,22 +23,15 @@ internal class DataClassVisitor(
 
     override val annotationClass: KClass<*> = DataClass::class
 
-    override val initializeProperty: Boolean = true
-
-    override val isAddOverrideModifierToProperties: Boolean = true
-
     override val additionalClassModifier: KModifier? = null
 
     override val isAddSelfAsSuperInterface: Boolean = true
 
-    override val isGenerateCopyMethod: Boolean = true
-
-    override val constructingMechanism: ConstructingMechanism = ConstructingMechanism(
-        builder = true,
-        primaryConstructor = true,
-        secondaryConstructor = config.constructViaConstructorInsteadOfDsl,
-        dsl = config.constructViaConstructorInsteadOfDsl.not()
-    )
+    override val constructingMechanism: ConstructingMechanism = if(config.constructViaConstructorInsteadOfDsl) {
+        ConstructingMechanism.SecondaryConstructor
+    } else {
+        ConstructingMechanism.DSL
+    }
 
 
     override fun writeFileSpec(
